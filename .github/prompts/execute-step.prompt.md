@@ -85,7 +85,7 @@ After completing all activities in the step:
 ## References
 
 This prompt inherits gh CLI and Git workflow knowledge from:
-- [Copilot Instructions](../.github/copilot-instructions.md) - Workflow Utilities section
+- [Copilot Instructions](../copilot-instructions.md) - Workflow Utilities section
 
 ## Next Steps
 
