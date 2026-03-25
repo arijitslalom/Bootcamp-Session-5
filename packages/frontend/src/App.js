@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import {
   Container,
   Box,
@@ -28,8 +28,11 @@ import {
   Add as AddIcon,
   Check as CheckIcon,
   Close as CloseIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ThemeContext } from './ThemeContext';
 import './App.css';
 
 // Use relative URL to work in all environments (localhost, Codespaces, production)
@@ -81,6 +84,9 @@ function App() {
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
   const queryClient = useQueryClient();
+
+  // Get theme context
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   // Fetch todos using React Query (filtered)
   const { data: todos = [], isLoading, error } = useTodos(priorityFilter, tagFilter);
@@ -241,8 +247,21 @@ function App() {
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
             mb: 4,
+            position: 'relative',
           }}
         >
+          <IconButton
+            onClick={toggleTheme}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              color: 'white',
+            }}
+          >
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
           <Typography variant="h4" component="h1" gutterBottom>
             TODO App
           </Typography>

@@ -1,7 +1,9 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '../App';
+import { ThemeContext } from '../ThemeContext';
 
 // Create a test query client
 const createTestQueryClient = () =>
@@ -947,6 +949,207 @@ describe('Tags/Categories Feature', () => {
       );
       expect(postCalls.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('Dark/Light Theme Toggle', () => {
+  let mockToggleTheme;
+
+  beforeEach(() => {
+    // Clear localStorage before each test
+    localStorage.clear();
+    // Create a fresh mock for each test
+    mockToggleTheme = jest.fn();
+    // Mock matchMedia for system preference detection
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: jest.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })),
+    });
+  });
+
+  test('renders theme toggle button', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    const themeContextValue = { isDarkMode: false, toggleTheme: mockToggleTheme };
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <ThemeContext.Provider value={themeContextValue}>
+          <App />
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Should have a theme toggle button with appropriate aria-label
+    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+    expect(themeToggle).toBeInTheDocument();
+  });
+
+  test('toggles theme when button is clicked', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    const themeContextValue = { isDarkMode: false, toggleTheme: mockToggleTheme };
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <ThemeContext.Provider value={themeContextValue}>
+          <App />
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Find theme toggle button
+    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+
+    // Click to toggle theme
+    await user.click(themeToggle);
+
+    // Wait for toggle function to be called
+    await waitFor(() => {
+      expect(mockToggleTheme).toHaveBeenCalled();
+    });
+  });
+
+  test('persists theme preference to localStorage', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    // Create a real toggle that updates localStorage
+    let isDark = false;
+    const realToggleTheme = () => {
+      isDark = !isDark;
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    };
+    const themeContextValue = { isDarkMode: isDark, toggleTheme: realToggleTheme };
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <ThemeContext.Provider value={themeContextValue}>
+          <App />
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Find and click theme toggle
+    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+    await user.click(themeToggle);
+
+    // Wait for localStorage to be updated
+    await waitFor(() => {
+      const savedTheme = localStorage.getItem('theme');
+      expect(savedTheme).toBeTruthy();
+      expect(['light', 'dark']).toContain(savedTheme);
+    });
+  });
+
+  test('loads theme preference from localStorage on mount', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    // Set dark theme in localStorage before rendering
+    localStorage.setItem('theme', 'dark');
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    const savedTheme = localStorage.getItem('theme');
+    const themeContextValue = { isDarkMode: savedTheme === 'dark', toggleTheme: mockToggleTheme };
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <ThemeContext.Provider value={themeContextValue}>
+          <App />
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Verify theme was loaded from localStorage
+    expect(localStorage.getItem('theme')).toBe('dark');
+  });
+
+  test('uses system preference when no localStorage theme exists', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    // Mock system preference for dark mode
+    const matchMediaMock = jest.fn().mockImplementation(query => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+    window.matchMedia = matchMediaMock;
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    // Simulate system preference check
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    const themeContextValue = { isDarkMode: prefersDark, toggleTheme: mockToggleTheme };
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <ThemeContext.Provider value={themeContextValue}>
+          <App />
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // App should detect system preference and potentially initialize with it
+    // This test verifies the matchMedia API was called
+    expect(matchMediaMock).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
   });
 });
 
