@@ -595,6 +595,361 @@ describe('Priority Feature', () => {
   });
 });
 
+describe('Tags/Categories Feature', () => {
+  test('displays tag input field in add todo form', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Should have a tag input in the form
+    const tagInput = screen.getByLabelText(/tags/i);
+    expect(tagInput).toBeInTheDocument();
+  });
+
+  test('creates todo with tags', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+      
+      // Initial fetch
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      
+      // POST request
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ 
+            id: 1, 
+            title: body.title,
+            priority: body.priority || 'medium',
+            tags: body.tags || [],
+            completed: false 
+          }),
+        });
+      }
+      
+      // Refetch after POST
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 1, title: 'Work Task', priority: 'medium', tags: ['work', 'urgent'], completed: false }
+        ]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Enter todo title
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Work Task');
+
+    // Enter tags
+    const tagInput = screen.getByLabelText(/tags/i);
+    await user.type(tagInput, 'work');
+    // Simulate pressing Enter or comma to add tag
+    await user.keyboard('{Enter}');
+    await user.type(tagInput, 'urgent');
+    await user.keyboard('{Enter}');
+
+    // Submit form
+    const addButton = screen.getByRole('button', { name: /add/i });
+    await user.click(addButton);
+
+    // Verify POST was called with tags
+    await waitFor(() => {
+      const postCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'POST'
+      );
+      expect(postCalls.length).toBeGreaterThan(0);
+      
+      const postBody = JSON.parse(postCalls[0][1].body);
+      expect(postBody.tags).toContain('work');
+      expect(postBody.tags).toContain('urgent');
+    });
+  });
+
+  test('displays tags as chips on todo items', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Work Task', priority: 'medium', tags: ['work', 'urgent'], completed: false },
+      { id: 2, title: 'Personal Task', priority: 'low', tags: ['personal'], completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Work Task');
+
+    // Check for tag chips using getAllByText since tags appear in both filter and todo items
+    const workChips = screen.getAllByText('work');
+    const urgentChips = screen.getAllByText('urgent');
+    const personalChips = screen.getAllByText('personal');
+    
+    // Should have at least one of each tag
+    expect(workChips.length).toBeGreaterThan(0);
+    expect(urgentChips.length).toBeGreaterThan(0);
+    expect(personalChips.length).toBeGreaterThan(0);
+  });
+
+  test('allows filtering todos by tag', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const allTodos = [
+      { id: 1, title: 'Work Task 1', priority: 'medium', tags: ['work'], completed: false },
+      { id: 2, title: 'Personal Task', priority: 'low', tags: ['personal'], completed: false },
+      { id: 3, title: 'Work Task 2', priority: 'high', tags: ['work', 'urgent'], completed: false },
+    ];
+
+    const workTodos = allTodos.filter(t => t.tags.includes('work'));
+
+    global.fetch.mockImplementation((url) => {
+      // Check if URL has tag filter
+      if (url.includes('tag=work')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(workTodos),
+        });
+      }
+      
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(allTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    // Wait for all todos to load
+    await screen.findByText('Work Task 1');
+    expect(screen.getByText('Personal Task')).toBeInTheDocument();
+
+    // Click tag chip to filter
+    const workChips = screen.getAllByText('work');
+    // Find a clickable 'work' tag chip (should have a class indicating it's clickable)
+    const workFilterChip = workChips[0];
+    await user.click(workFilterChip);
+
+    // Should fetch with tag filter
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url => typeof url === 'string' && url.includes('tag=work'))).toBe(true);
+    });
+  });
+
+  test('allows editing tags in edit mode', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Test Todo', priority: 'medium', tags: ['work'], completed: false },
+    ];
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+      
+      // Initial fetch
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos),
+        });
+      }
+      
+      // PUT request
+      if (options.method === 'PUT') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ 
+            id: 1, 
+            title: body.title || 'Test Todo',
+            priority: body.priority || 'medium',
+            tags: body.tags || ['work'],
+            completed: false 
+          }),
+        });
+      }
+      
+      // Refetch
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 1, title: 'Test Todo', priority: 'medium', tags: ['personal', 'urgent'], completed: false }
+        ]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Test Todo');
+
+    // Click edit button
+    const editButton = screen.getByRole('button', { name: /edit todo/i });
+    await user.click(editButton);
+
+    // Should show tag input in edit mode
+    const tagInputs = screen.getAllByLabelText(/tags/i);
+    expect(tagInputs.length).toBeGreaterThan(0);
+
+    // Clear existing tags and add new ones
+    // Implementation will depend on tag input component behavior
+
+    // Save changes
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await user.click(saveButton);
+
+    // Verify PUT was called
+    await waitFor(() => {
+      const putCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'PUT'
+      );
+      expect(putCalls.length).toBeGreaterThan(0);
+    });
+  });
+
+  test('displays tag filter section showing all unique tags', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task 1', tags: ['work', 'urgent'], completed: false },
+      { id: 2, title: 'Task 2', tags: ['personal'], completed: false },
+      { id: 3, title: 'Task 3', tags: ['work', 'project'], completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Task 1');
+
+    // Should have a tag filter section
+    expect(screen.getByText(/filter by tag/i) || screen.getByText(/tags/i)).toBeTruthy();
+  });
+
+  test('creates todo without tags (empty tags array)', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+      
+      // Initial fetch
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      
+      // POST request
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ 
+            id: 1, 
+            title: body.title,
+            priority: body.priority || 'medium',
+            tags: body.tags || [],
+            completed: false 
+          }),
+        });
+      }
+      
+      // Refetch after POST
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 1, title: 'Simple Task', priority: 'medium', tags: [], completed: false }
+        ]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Enter todo title without tags
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Simple Task');
+
+    // Submit form
+    const addButton = screen.getByRole('button', { name: /add/i });
+    await user.click(addButton);
+
+    // Verify POST was called
+    await waitFor(() => {
+      const postCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'POST'
+      );
+      expect(postCalls.length).toBeGreaterThan(0);
+    });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

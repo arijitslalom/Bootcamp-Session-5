@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Container,
   Box,
@@ -20,6 +20,7 @@ import {
   FormControl,
   InputLabel,
   ButtonGroup,
+  Autocomplete,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -35,14 +36,31 @@ import './App.css';
 const API_URL = '/api/todos';
 
 // React Query hook for fetching todos
-const useTodos = (priorityFilter) => {
+const useTodos = (priorityFilter, tagFilter) => {
   return useQuery({
-    queryKey: ['todos', priorityFilter],
+    queryKey: ['todos', priorityFilter, tagFilter],
     queryFn: async () => {
-      const url = priorityFilter 
-        ? `${API_URL}?priority=${priorityFilter}` 
-        : API_URL;
+      const params = new URLSearchParams();
+      if (priorityFilter) params.append('priority', priorityFilter);
+      if (tagFilter) params.append('tag', tagFilter);
+      
+      const url = params.toString() ? `${API_URL}?${params}` : API_URL;
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch todos');
+      }
+      const data = await response.json();
+      return data;
+    },
+  });
+};
+
+// React Query hook for fetching ALL todos (unfiltered) - used for tag/priority filter UI
+const useAllTodos = () => {
+  return useQuery({
+    queryKey: ['todos', 'all'],
+    queryFn: async () => {
+      const response = await fetch(API_URL);
       if (!response.ok) {
         throw new Error('Failed to fetch todos');
       }
@@ -55,23 +73,29 @@ const useTodos = (priorityFilter) => {
 function App() {
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoPriority, setNewTodoPriority] = useState('medium');
+  const [newTodoTags, setNewTodoTags] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [editingPriority, setEditingPriority] = useState('medium');
+  const [editingTags, setEditingTags] = useState([]);
   const [priorityFilter, setPriorityFilter] = useState(null);
+  const [tagFilter, setTagFilter] = useState(null);
   const queryClient = useQueryClient();
 
-  // Fetch todos using React Query
-  const { data: todos = [], isLoading, error } = useTodos(priorityFilter);
+  // Fetch todos using React Query (filtered)
+  const { data: todos = [], isLoading, error } = useTodos(priorityFilter, tagFilter);
+  
+  // Fetch ALL todos (unfiltered) for deriving filter options
+  const { data: allTodosData = [] } = useAllTodos();
 
   // Mutation for adding a new todo
   const addTodoMutation = useMutation({
-    mutationFn: async ({ title, priority }) => {
+    mutationFn: async ({ title, priority, tags }) => {
       // INTENTIONAL ISSUE: Missing validation for empty title
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, priority }),
+        body: JSON.stringify({ title, priority, tags }),
       });
       return response.json();
     },
@@ -79,6 +103,7 @@ function App() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       setNewTodoTitle('');
       setNewTodoPriority('medium');
+      setNewTodoTags([]);
     },
   });
 
@@ -105,10 +130,11 @@ function App() {
 
   // Mutation for editing a todo
   const editTodoMutation = useMutation({
-    mutationFn: async ({ id, title, priority }) => {
+    mutationFn: async ({ id, title, priority, tags }) => {
       const updateData = {};
       if (title !== undefined) updateData.title = title;
       if (priority !== undefined) updateData.priority = priority;
+      if (tags !== undefined) updateData.tags = tags;
       
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
@@ -122,13 +148,18 @@ function App() {
       setEditingId(null);
       setEditingTitle('');
       setEditingPriority('medium');
+      setEditingTags([]);
     },
   });
 
   const handleAddTodo = (e) => {
     e.preventDefault();
     if (newTodoTitle.trim()) {
-      addTodoMutation.mutate({ title: newTodoTitle, priority: newTodoPriority });
+      addTodoMutation.mutate({ 
+        title: newTodoTitle, 
+        priority: newTodoPriority,
+        tags: newTodoTags 
+      });
     }
   };
 
@@ -148,6 +179,7 @@ function App() {
     setEditingId(todo.id);
     setEditingTitle(todo.title);
     setEditingPriority(todo.priority || 'medium');
+    setEditingTags(todo.tags || []);
   };
 
   const handleSaveEdit = () => {
@@ -155,7 +187,8 @@ function App() {
       editTodoMutation.mutate({ 
         id: editingId, 
         title: editingTitle,
-        priority: editingPriority 
+        priority: editingPriority,
+        tags: editingTags
       });
     }
   };
@@ -164,6 +197,7 @@ function App() {
     setEditingId(null);
     setEditingTitle('');
     setEditingPriority('medium');
+    setEditingTags([]);
   };
 
   const getPriorityColor = (priority) => {
@@ -177,6 +211,17 @@ function App() {
       default:
         return 'default';
     }
+  };
+
+  // Get all unique tags from ALL todos (unfiltered) - memoized for performance
+  // This ensures tag filter options don't disappear when filtering
+  const allTags = useMemo(
+    () => [...new Set(allTodosData.flatMap(todo => todo.tags || []))],
+    [allTodosData]
+  );
+
+  const handleTagClick = (tag) => {
+    setTagFilter(tag === tagFilter ? null : tag);
   };
 
   return (
@@ -242,6 +287,26 @@ function App() {
                 </Button>
               </ButtonGroup>
             </Box>
+
+            {allTags.length > 0 && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  Filter by Tag
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {allTags.map(tag => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      onClick={() => handleTagClick(tag)}
+                      color={tagFilter === tag ? 'primary' : 'default'}
+                      variant={tagFilter === tag ? 'filled' : 'outlined'}
+                      sx={{ mb: 1, cursor: 'pointer' }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
           </CardContent>
         </Card>
 
@@ -250,37 +315,64 @@ function App() {
             <Box
               component="form"
               onSubmit={handleAddTodo}
-              sx={{ display: 'flex', gap: 2 }}
+              sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
             >
-              <TextField
-                fullWidth
-                value={newTodoTitle}
-                onChange={(e) => setNewTodoTitle(e.target.value)}
-                placeholder="What needs to be done?"
-                variant="outlined"
-                size="medium"
-              />
-              <FormControl sx={{ minWidth: 120 }}>
-                <InputLabel id="priority-label">Priority</InputLabel>
-                <Select
-                  labelId="priority-label"
-                  value={newTodoPriority}
-                  label="Priority"
-                  onChange={(e) => setNewTodoPriority(e.target.value)}
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  value={newTodoTitle}
+                  onChange={(e) => setNewTodoTitle(e.target.value)}
+                  placeholder="What needs to be done?"
+                  variant="outlined"
+                  size="medium"
+                />
+                <FormControl sx={{ minWidth: 120 }}>
+                  <InputLabel id="priority-label">Priority</InputLabel>
+                  <Select
+                    labelId="priority-label"
+                    value={newTodoPriority}
+                    label="Priority"
+                    onChange={(e) => setNewTodoPriority(e.target.value)}
+                  >
+                    <MenuItem value="high">High</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ minWidth: 120 }}
                 >
-                  <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
-                </Select>
-              </FormControl>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={<AddIcon />}
-                sx={{ minWidth: 120 }}
-              >
-                Add
-              </Button>
+                  Add
+                </Button>
+              </Box>
+              <Autocomplete
+                multiple
+                freeSolo
+                options={allTags}
+                value={newTodoTags}
+                onChange={(event, newValue) => setNewTodoTags(newValue)}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      variant="outlined"
+                      label={option}
+                      {...getTagProps({ index })}
+                      key={index}
+                    />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tags"
+                    placeholder="Add tags..."
+                    size="small"
+                  />
+                )}
+              />
             </Box>
           </CardContent>
         </Card>
@@ -348,32 +440,61 @@ function App() {
                 {editingId === todo.id ? (
                   // Edit mode: show input field
                   <>
-                    <Box sx={{ flex: 1, display: 'flex', gap: 2 }}>
-                      <TextField
-                        fullWidth
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveEdit();
-                          }
-                        }}
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField
+                          fullWidth
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveEdit();
+                            }
+                          }}
+                          size="small"
+                          autoFocus
+                        />
+                        <FormControl sx={{ minWidth: 120 }} size="small">
+                          <InputLabel id="edit-priority-label">Priority</InputLabel>
+                          <Select
+                            labelId="edit-priority-label"
+                            value={editingPriority}
+                            label="Priority"
+                            onChange={(e) => setEditingPriority(e.target.value)}
+                          >
+                            <MenuItem value="high">High</MenuItem>
+                            <MenuItem value="medium">Medium</MenuItem>
+                            <MenuItem value="low">Low</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                      <Autocomplete
+                        multiple
+                        freeSolo
+                        options={allTags}
+                        value={editingTags}
+                        onChange={(event, newValue) => setEditingTags(newValue)}
                         size="small"
-                        autoFocus
+                        renderTags={(value, getTagProps) =>
+                          value.map((option, index) => (
+                            <Chip
+                              variant="outlined"
+                              label={option}
+                              {...getTagProps({ index })}
+                              key={index}
+                              size="small"
+                            />
+                          ))
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Tags"
+                            placeholder="Edit tags..."
+                            size="small"
+                          />
+                        )}
                       />
-                      <FormControl sx={{ minWidth: 120 }} size="small">
-                        <InputLabel id="edit-priority-label">Priority</InputLabel>
-                        <Select
-                          labelId="edit-priority-label"
-                          value={editingPriority}
-                          label="Priority"
-                          onChange={(e) => setEditingPriority(e.target.value)}
-                        >
-                          <MenuItem value="high">High</MenuItem>
-                          <MenuItem value="medium">Medium</MenuItem>
-                          <MenuItem value="low">Low</MenuItem>
-                        </Select>
-                      </FormControl>
                     </Box>
                     <Stack direction="row" spacing={1}>
                       <IconButton
@@ -406,12 +527,24 @@ function App() {
                       >
                         {todo.title}
                       </Typography>
-                      <Chip 
-                        label={todo.priority || 'medium'} 
-                        color={getPriorityColor(todo.priority || 'medium')}
-                        size="small"
-                        sx={{ mt: 0.5, textTransform: 'capitalize' }}
-                      />
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                        <Chip 
+                          label={todo.priority || 'medium'} 
+                          color={getPriorityColor(todo.priority || 'medium')}
+                          size="small"
+                          sx={{ textTransform: 'capitalize' }}
+                        />
+                        {(todo.tags || []).map((tag, idx) => (
+                          <Chip
+                            key={idx}
+                            label={tag}
+                            size="small"
+                            variant="outlined"
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => handleTagClick(tag)}
+                          />
+                        ))}
+                      </Stack>
                     </Box>
                     <Stack direction="row" spacing={1}>
                       <IconButton
