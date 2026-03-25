@@ -26,6 +26,35 @@ function validatePriority(priority) {
   return null; // Valid
 }
 
+// Helper function to validate tags
+function validateTags(tags) {
+  if (tags !== undefined && tags !== null) {
+    // Must be an array
+    if (!Array.isArray(tags)) {
+      return 'tags must be an array';
+    }
+    // All elements must be strings
+    for (const tag of tags) {
+      if (typeof tag !== 'string') {
+        return 'All tags must be strings';
+      }
+      // After trimming, tag must not be empty
+      if (tag.trim() === '') {
+        return 'tags cannot be empty strings';
+      }
+    }
+  }
+  return null; // Valid
+}
+
+// Helper function to normalize tags (trim whitespace)
+function normalizeTags(tags) {
+  if (!tags || !Array.isArray(tags)) {
+    return [];
+  }
+  return tags.map(tag => tag.trim());
+}
+
 // In-memory data store for TODOs
 let todos = [];
 
@@ -50,12 +79,20 @@ app.get('/api/todos', (req, res) => {
     );
   }
 
+  // Filter by tag if query param provided
+  if (req.query.tag) {
+    const tagFilter = req.query.tag.toLowerCase();
+    filteredTodos = filteredTodos.filter(t => 
+      t.tags && t.tags.some(tag => tag.toLowerCase() === tagFilter)
+    );
+  }
+
   res.json(filteredTodos);
 });
 
 // POST /api/todos - Create a new todo
 app.post('/api/todos', (req, res) => {
-  const { title, priority } = req.body;
+  const { title, priority, tags } = req.body;
 
   // Validate title is provided and not empty
   if (!title || title.trim() === '') {
@@ -68,11 +105,18 @@ app.post('/api/todos', (req, res) => {
     return res.status(400).json({ error: priorityError });
   }
 
+  // Validate tags if provided
+  const tagsError = validateTags(tags);
+  if (tagsError) {
+    return res.status(400).json({ error: tagsError });
+  }
+
   // Create new todo
   const newTodo = {
     id: nextId++,
     title: title,
     priority: priority || 'medium',
+    tags: normalizeTags(tags),
     completed: false,
     createdAt: new Date().toISOString(),
   };
@@ -84,7 +128,7 @@ app.post('/api/todos', (req, res) => {
 // PUT /api/todos/:id - Update a todo
 app.put('/api/todos/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { title, priority } = req.body;
+  const { title, priority, tags } = req.body;
 
   const todo = todos.find((t) => t.id === id);
 
@@ -104,6 +148,15 @@ app.put('/api/todos/:id', (req, res) => {
       return res.status(400).json({ error: priorityError });
     }
     todo.priority = priority;
+  }
+
+  // Update tags if provided
+  if (tags !== undefined) {
+    const tagsError = validateTags(tags);
+    if (tagsError) {
+      return res.status(400).json({ error: tagsError });
+    }
+    todo.tags = normalizeTags(tags);
   }
 
   res.json(todo);
