@@ -24,6 +24,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Grid,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -89,6 +91,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const queryClient = useQueryClient();
 
   // Get theme context
@@ -116,6 +119,10 @@ function App() {
       setNewTodoTitle('');
       setNewTodoPriority('medium');
       setNewTodoTags([]);
+      
+      // Show success notification
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     },
   });
 
@@ -329,7 +336,7 @@ function App() {
                   </Typography>
                 </Box>
                 
-                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ mb: 2 }}>
                   Add New Task
                 </Typography>
                 
@@ -339,63 +346,88 @@ function App() {
                   onSubmit={handleAddTodo}
                   sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}
                 >
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                      fullWidth
-                      value={newTodoTitle}
-                      onChange={(e) => setNewTodoTitle(e.target.value)}
-                      placeholder="What needs to be done?"
-                      label="Task title"
-                      variant="outlined"
-                      size="medium"
-                    />
-                    <FormControl sx={{ minWidth: 120 }}>
-                      <InputLabel id="priority-label">Priority</InputLabel>
-                      <Select
-                        labelId="priority-label"
-                        value={newTodoPriority}
-                        label="Priority"
-                        onChange={(e) => setNewTodoPriority(e.target.value)}
-                      >
-                        <MenuItem value="high">High</MenuItem>
-                        <MenuItem value="medium">Medium</MenuItem>
-                        <MenuItem value="low">Low</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      sx={{ minWidth: 120 }}
+                  {/* Large Task Input Field */}
+                  <TextField
+                    fullWidth
+                    value={newTodoTitle}
+                    onChange={(e) => setNewTodoTitle(e.target.value)}
+                    placeholder="What needs to be done?"
+                    variant="outlined"
+                    size="large"
+                    autoFocus
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '1.1rem',
+                        borderRadius: 2
+                      }
+                    }}
+                  />
+                  
+                  {/* Priority Selector */}
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Priority</InputLabel>
+                    <Select
+                      value={newTodoPriority}
+                      onChange={(e) => setNewTodoPriority(e.target.value)}
+                      label="Priority"
                     >
-                      Add
-                    </Button>
-                  </Box>
+                      <MenuItem value="low">Low</MenuItem>
+                      <MenuItem value="medium">Medium</MenuItem>
+                      <MenuItem value="high">High</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  {/* Tags Input */}
                   <Autocomplete
                     multiple
                     freeSolo
                     options={allTags}
                     value={newTodoTags}
                     onChange={(event, newValue) => setNewTodoTags(newValue)}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => (
-                        <Chip
-                          variant="outlined"
-                          label={option}
-                          {...getTagProps({ index })}
-                          key={index}
-                        />
-                      ))
-                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Tags"
-                        placeholder="Add tags..."
+                        placeholder="Add tags"
                         size="small"
                       />
                     )}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip 
+                          label={option} 
+                          size="small" 
+                          {...getTagProps({ index })} 
+                          key={index}
+                        />
+                      ))
+                    }
                   />
+                  
+                  {/* Add Task Button - Full Width, Primary */}
+                  <Button 
+                    type="submit" 
+                    variant="contained" 
+                    fullWidth 
+                    size="large"
+                    startIcon={addTodoMutation.isLoading ? null : <AddIcon />}
+                    disabled={!newTodoTitle.trim() || addTodoMutation.isLoading}
+                    sx={{ 
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      fontSize: '1rem'
+                    }}
+                  >
+                    {addTodoMutation.isLoading ? (
+                      <>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Adding...
+                      </>
+                    ) : (
+                      'Add Task'
+                    )}
+                  </Button>
                 </Box>
 
                 {/* Filters */}
@@ -702,6 +734,18 @@ function App() {
             </Card>
           </Grid>
         </Grid>
+        
+        {/* Success Snackbar */}
+        <Snackbar 
+          open={showSuccess} 
+          autoHideDuration={2000}
+          onClose={() => setShowSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert severity="success" variant="filled" onClose={() => setShowSuccess(false)}>
+            Task added successfully!
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   );
