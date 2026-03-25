@@ -8,6 +8,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Valid priority values
+const VALID_PRIORITIES = ['high', 'medium', 'low'];
+
+// Helper function to validate priority
+function isValidPriority(priority) {
+  return VALID_PRIORITIES.includes(priority);
+}
+
+// Helper function to validate priority with error message
+function validatePriority(priority) {
+  if (priority !== undefined && priority !== null) {
+    if (typeof priority !== 'string' || !isValidPriority(priority)) {
+      return `Invalid priority. Must be one of: ${VALID_PRIORITIES.join(', ')}`;
+    }
+  }
+  return null; // Valid
+}
+
 // In-memory data store for TODOs
 let todos = [];
 
@@ -22,22 +40,39 @@ app.get('/health', (req, res) => {
 // GET /api/todos - Get all todos
 // INTENTIONAL ISSUE: This endpoint has a bug - it doesn't handle the case when todos is null
 app.get('/api/todos', (req, res) => {
-  res.json(todos);
+  let filteredTodos = todos;
+
+  // Filter by priority if query param provided
+  if (req.query.priority) {
+    const priorityFilter = req.query.priority.toLowerCase();
+    filteredTodos = filteredTodos.filter(t => 
+      t.priority === priorityFilter
+    );
+  }
+
+  res.json(filteredTodos);
 });
 
 // POST /api/todos - Create a new todo
 app.post('/api/todos', (req, res) => {
-  const { title } = req.body;
+  const { title, priority } = req.body;
 
   // Validate title is provided and not empty
   if (!title || title.trim() === '') {
     return res.status(400).json({ error: 'Title is required' });
   }
 
+  // Validate priority if provided
+  const priorityError = validatePriority(priority);
+  if (priorityError) {
+    return res.status(400).json({ error: priorityError });
+  }
+
   // Create new todo
   const newTodo = {
     id: nextId++,
     title: title,
+    priority: priority || 'medium',
     completed: false,
     createdAt: new Date().toISOString(),
   };
@@ -49,7 +84,7 @@ app.post('/api/todos', (req, res) => {
 // PUT /api/todos/:id - Update a todo
 app.put('/api/todos/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { title } = req.body;
+  const { title, priority } = req.body;
 
   const todo = todos.find((t) => t.id === id);
 
@@ -57,9 +92,18 @@ app.put('/api/todos/:id', (req, res) => {
     return res.status(404).json({ error: 'Todo not found' });
   }
 
-  // Update only the title, preserve completed status
+  // Update title if provided
   if (title !== undefined) {
     todo.title = title;
+  }
+
+  // Update priority if provided
+  if (priority !== undefined) {
+    const priorityError = validatePriority(priority);
+    if (priorityError) {
+      return res.status(400).json({ error: priorityError });
+    }
+    todo.priority = priority;
   }
 
   res.json(todo);
