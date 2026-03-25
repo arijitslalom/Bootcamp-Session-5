@@ -15,6 +15,11 @@ import {
   CircularProgress,
   Chip,
   Stack,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  ButtonGroup,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -30,11 +35,14 @@ import './App.css';
 const API_URL = '/api/todos';
 
 // React Query hook for fetching todos
-const useTodos = () => {
+const useTodos = (priorityFilter) => {
   return useQuery({
-    queryKey: ['todos'],
+    queryKey: ['todos', priorityFilter],
     queryFn: async () => {
-      const response = await fetch(API_URL);
+      const url = priorityFilter 
+        ? `${API_URL}?priority=${priorityFilter}` 
+        : API_URL;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch todos');
       }
@@ -46,27 +54,31 @@ const useTodos = () => {
 
 function App() {
   const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [newTodoPriority, setNewTodoPriority] = useState('medium');
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingPriority, setEditingPriority] = useState('medium');
+  const [priorityFilter, setPriorityFilter] = useState(null);
   const queryClient = useQueryClient();
 
   // Fetch todos using React Query
-  const { data: todos = [], isLoading, error } = useTodos();
+  const { data: todos = [], isLoading, error } = useTodos(priorityFilter);
 
   // Mutation for adding a new todo
   const addTodoMutation = useMutation({
-    mutationFn: async (title) => {
+    mutationFn: async ({ title, priority }) => {
       // INTENTIONAL ISSUE: Missing validation for empty title
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, priority }),
       });
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       setNewTodoTitle('');
+      setNewTodoPriority('medium');
     },
   });
 
@@ -93,11 +105,15 @@ function App() {
 
   // Mutation for editing a todo
   const editTodoMutation = useMutation({
-    mutationFn: async ({ id, title }) => {
+    mutationFn: async ({ id, title, priority }) => {
+      const updateData = {};
+      if (title !== undefined) updateData.title = title;
+      if (priority !== undefined) updateData.priority = priority;
+      
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(updateData),
       });
       return response.json();
     },
@@ -105,13 +121,14 @@ function App() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       setEditingId(null);
       setEditingTitle('');
+      setEditingPriority('medium');
     },
   });
 
   const handleAddTodo = (e) => {
     e.preventDefault();
     if (newTodoTitle.trim()) {
-      addTodoMutation.mutate(newTodoTitle);
+      addTodoMutation.mutate({ title: newTodoTitle, priority: newTodoPriority });
     }
   };
 
@@ -130,17 +147,36 @@ function App() {
   const handleStartEdit = (todo) => {
     setEditingId(todo.id);
     setEditingTitle(todo.title);
+    setEditingPriority(todo.priority || 'medium');
   };
 
   const handleSaveEdit = () => {
     if (editingTitle.trim()) {
-      editTodoMutation.mutate({ id: editingId, title: editingTitle });
+      editTodoMutation.mutate({ 
+        id: editingId, 
+        title: editingTitle,
+        priority: editingPriority 
+      });
     }
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingTitle('');
+    setEditingPriority('medium');
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high':
+        return 'error';
+      case 'medium':
+        return 'warning';
+      case 'low':
+        return 'info';
+      default:
+        return 'default';
+    }
   };
 
   return (
@@ -172,6 +208,45 @@ function App() {
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Filter by Priority
+              </Typography>
+              <ButtonGroup variant="outlined" size="small">
+                <Button 
+                  onClick={() => setPriorityFilter(null)}
+                  variant={priorityFilter === null ? 'contained' : 'outlined'}
+                >
+                  All
+                </Button>
+                <Button 
+                  onClick={() => setPriorityFilter('high')}
+                  variant={priorityFilter === 'high' ? 'contained' : 'outlined'}
+                  color="error"
+                >
+                  High
+                </Button>
+                <Button 
+                  onClick={() => setPriorityFilter('medium')}
+                  variant={priorityFilter === 'medium' ? 'contained' : 'outlined'}
+                  color="warning"
+                >
+                  Medium
+                </Button>
+                <Button 
+                  onClick={() => setPriorityFilter('low')}
+                  variant={priorityFilter === 'low' ? 'contained' : 'outlined'}
+                  color="info"
+                >
+                  Low
+                </Button>
+              </ButtonGroup>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
             <Box
               component="form"
               onSubmit={handleAddTodo}
@@ -185,6 +260,19 @@ function App() {
                 variant="outlined"
                 size="medium"
               />
+              <FormControl sx={{ minWidth: 120 }}>
+                <InputLabel id="priority-label">Priority</InputLabel>
+                <Select
+                  labelId="priority-label"
+                  value={newTodoPriority}
+                  label="Priority"
+                  onChange={(e) => setNewTodoPriority(e.target.value)}
+                >
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                </Select>
+              </FormControl>
               <Button
                 type="submit"
                 variant="contained"
@@ -260,19 +348,33 @@ function App() {
                 {editingId === todo.id ? (
                   // Edit mode: show input field
                   <>
-                    <TextField
-                      fullWidth
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveEdit();
-                        }
-                      }}
-                      size="small"
-                      autoFocus
-                      sx={{ mr: 2 }}
-                    />
+                    <Box sx={{ flex: 1, display: 'flex', gap: 2 }}>
+                      <TextField
+                        fullWidth
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveEdit();
+                          }
+                        }}
+                        size="small"
+                        autoFocus
+                      />
+                      <FormControl sx={{ minWidth: 120 }} size="small">
+                        <InputLabel id="edit-priority-label">Priority</InputLabel>
+                        <Select
+                          labelId="edit-priority-label"
+                          value={editingPriority}
+                          label="Priority"
+                          onChange={(e) => setEditingPriority(e.target.value)}
+                        >
+                          <MenuItem value="high">High</MenuItem>
+                          <MenuItem value="medium">Medium</MenuItem>
+                          <MenuItem value="low">Low</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
                     <Stack direction="row" spacing={1}>
                       <IconButton
                         size="small"
@@ -295,15 +397,22 @@ function App() {
                 ) : (
                   // Normal mode: show title and action buttons
                   <>
-                    <Typography
-                      sx={{
-                        flex: 1,
-                        textDecoration: todo.completed ? 'line-through' : 'none',
-                        color: todo.completed ? 'text.secondary' : 'text.primary',
-                      }}
-                    >
-                      {todo.title}
-                    </Typography>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        sx={{
+                          textDecoration: todo.completed ? 'line-through' : 'none',
+                          color: todo.completed ? 'text.secondary' : 'text.primary',
+                        }}
+                      >
+                        {todo.title}
+                      </Typography>
+                      <Chip 
+                        label={todo.priority || 'medium'} 
+                        color={getPriorityColor(todo.priority || 'medium')}
+                        size="small"
+                        sx={{ mt: 0.5, textTransform: 'capitalize' }}
+                      />
+                    </Box>
                     <Stack direction="row" spacing={1}>
                       <IconButton
                         size="small"
