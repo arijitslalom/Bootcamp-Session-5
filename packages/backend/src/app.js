@@ -71,6 +71,15 @@ app.get('/health', (req, res) => {
 app.get('/api/todos', (req, res) => {
   let filteredTodos = todos;
 
+  // Filter by completion status if query param provided
+  const status = req.query.status || 'all';
+  if (status === 'active') {
+    filteredTodos = filteredTodos.filter(t => !t.completed);
+  } else if (status === 'completed') {
+    filteredTodos = filteredTodos.filter(t => t.completed);
+  }
+  // 'all' or any invalid value returns everything
+
   // Filter by priority if query param provided
   if (req.query.priority) {
     const priorityFilter = req.query.priority.toLowerCase();

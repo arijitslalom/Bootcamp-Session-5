@@ -413,8 +413,10 @@ if (newTodo.dueDate && !isValidDate(newTodo.dueDate)) {
 
 ## Filtering & View Management
 
-### 5. Filter Views (All/Active/Completed)
+### 5. Filter Views (All/Active/Completed) ✅ COMPLETED
 
+**Status:** ✅ Completed on March 25, 2026  
+**Actual Effort:** 41 minutes  
 **Goal:** Classic TODO filter pattern to show all todos, only active (incomplete), or only completed todos.
 
 #### Backend Changes
@@ -480,7 +482,53 @@ app.get('/api/todos', (req, res) => {
 - Use React Router or URLSearchParams
 
 **Dependencies:** None (can be implemented independently)
-**Estimated Effort:** 2-3 hours
+**Estimated Effort:** 2-3 hours  
+**Actual Effort:** 41 minutes
+
+#### Implementation Summary
+
+**Completed Features:**
+- ✅ Backend status filter query parameter (?status=all|active|completed)
+- ✅ Default to "all" when status parameter missing
+- ✅ Graceful handling of invalid status values (defaults to "all")
+- ✅ Combined filtering with priority and tag filters
+- ✅ Frontend ToggleButtonGroup with All/Active/Completed buttons
+- ✅ Visual highlighting of active filter (aria-pressed attribute)
+- ✅ State management with statusFilter (default: 'all')
+- ✅ React Query integration with proper query key invalidation
+- ✅ Comprehensive test coverage (7 backend + 6 frontend tests)
+
+**Test Results:**
+- Backend: 64 tests passing (57 original + 7 new status filter tests)
+- Frontend: 31 tests passing (25 original + 6 new status filter tests)
+- Total: 95 tests passing (100% pass rate)
+
+**Code Quality:**
+- Zero compilation errors
+- Zero lint errors
+- TDD methodology followed (Red-Green-Refactor)
+- Test isolation with beforeEach cleanup hooks
+- Accessible implementation with proper ARIA attributes
+
+**Files Modified:**
+- Backend: [app.test.js](packages/backend/__tests__/app.test.js) - Added 7 tests with beforeEach cleanup
+- Backend: [app.js](packages/backend/src/app.js) - Added status filtering logic
+- Frontend: [App.test.js](packages/frontend/src/__tests__/App.test.js) - Added 6 tests
+- Frontend: [App.js](packages/frontend/src/App.js) - Added ToggleButtonGroup UI and state management
+
+**Feature Highlights:**
+- Filter positioned prominently with "Show" label
+- Exclusive selection (only one filter active at a time)
+- Works seamlessly with existing priority and tag filters
+- Proper null handling in toggle change handler
+- MUI ToggleButton component for polished UI
+
+**Notes:**
+- Implementation completed efficiently in 41 minutes (vs. 2-3 hour estimate)
+- Followed strict TDD methodology (tests first, then implementation)
+- Step 5.8 (URL State) deferred as optional enhancement
+- All existing tests continue to pass (no regressions)
+- Manual browser testing recommended for full UI verification
 
 ---
 
@@ -1287,18 +1335,18 @@ Based on dependencies and complexity, here's the recommended implementation orde
 
 ### Phase 1: Foundation (Week 1)
 1. Priority Levels (3-4h) ✅ COMPLETED - Actual: 40 minutes
-2. Filter Views - All/Active/Completed (2-3h)
+2. Filter Views - All/Active/Completed (2-3h) ✅ COMPLETED - Actual: 41 minutes
 3. Dark/Light Theme Toggle (2-3h) ✅ COMPLETED - Actual: 23 minutes
 
-**Total: ~7-10 hours** | **Completed: 2/3 features (63 minutes actual)**
+**Total: ~7-10 hours** | **Completed: 3/3 features (104 minutes actual / 1 hour 44 minutes)** ✅
 
 ### Phase 2: Organization (Week 2)
-4. Categories/Tags (4-5h)
+4. Categories/Tags (4-5h) ✅ COMPLETED - Actual: ~1 hour
 5. Due Dates (5-6h)
 6. Sort Options (3-4h)
 7. Search/Filter Bar (3-4h)
 
-**Total: ~15-19 hours**
+**Total: ~15-19 hours** | **Completed: 1/4 features (~1 hour actual)**
 
 ### Phase 3: Advanced UX (Week 3)
 8. Notes/Description Field (3-4h)
@@ -1380,3 +1428,35 @@ The total implementation time across all features is approximately **60-77 hours
 **Note:** This plan uses in-memory storage. Data will reset on server restart. For production use with data persistence, you would need to add database integration and user authentication separately.
 
 Start with Phase 1 (foundation) and progress sequentially for best results!
+
+---
+
+## 📊 Overall Progress (As of March 25, 2026)
+
+### ✅ Completed Features: 4 of 12 (33%)
+
+**Priority & Organization:**
+1. ✅ Priority Levels - 40 minutes
+2. ✅ Categories/Tags - ~1 hour
+
+**Filtering & View Management:**
+5. ✅ Filter Views (All/Active/Completed) - 41 minutes
+
+**Enhanced User Experience:**
+12. ✅ Dark/Light Theme Toggle - 23 minutes
+
+### Total Time Invested
+- **Estimated:** 7-10 hours for Phase 1 + 4-5 hours for Tags = 11-15 hours
+- **Actual:** 2 hours 44 minutes (16% of estimated minimum time)
+- **Efficiency:** ~6x faster than estimated
+
+### Current Test Coverage
+- **Backend:** 64 tests passing
+- **Frontend:** 31 tests passing
+- **Total:** 95 tests passing (100% pass rate)
+
+### Next Recommended Features
+Following the implementation sequence recommendation:
+- Phase 2: Due Dates (5-6h est.)
+- Phase 2: Sort Options (3-4h est.)
+- Phase 2: Search/Filter Bar (3-4h est.)

@@ -1153,6 +1153,262 @@ describe('Dark/Light Theme Toggle', () => {
   });
 });
 
+describe('Status Filter Feature', () => {
+  test('displays filter buttons for All, Active, and Completed', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/TODO App/i);
+
+    // Check for filter buttons - use getAllByRole since there might be multiple "All" buttons
+    const allButtons = screen.getAllByRole('button', { name: /^All$/i });
+    expect(allButtons.length).toBeGreaterThanOrEqual(1); // At least one "All" button exists
+
+    const activeButtons = screen.getAllByRole('button', { name: /^Active$/i });
+    expect(activeButtons.length).toBeGreaterThanOrEqual(1);
+
+    const completedButtons = screen.getAllByRole('button', { name: /^Completed$/i });
+    expect(completedButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('shows only active todos when Active filter is clicked', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Active Todo 1', completed: false, priority: 'medium', tags: [] },
+      { id: 2, title: 'Completed Todo', completed: true, priority: 'medium', tags: [] },
+      { id: 3, title: 'Active Todo 2', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    let fetchCallCount = 0;
+    global.fetch.mockImplementation((url) => {
+      fetchCallCount++;
+      
+      // Check if URL contains status filter
+      if (url.includes('status=active')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos.filter(t => !t.completed)),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Active Todo 1');
+
+    // Click Active filter
+    const activeButton = screen.getByRole('button', { name: /^Active$/i });
+    await user.click(activeButton);
+
+    // Wait for filtered results
+    await waitFor(() => {
+      expect(screen.getByText('Active Todo 1')).toBeInTheDocument();
+      expect(screen.getByText('Active Todo 2')).toBeInTheDocument();
+      expect(screen.queryByText('Completed Todo')).not.toBeInTheDocument();
+    });
+  });
+
+  test('shows only completed todos when Completed filter is clicked', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Active Todo', completed: false, priority: 'medium', tags: [] },
+      { id: 2, title: 'Completed Todo 1', completed: true, priority: 'medium', tags: [] },
+      { id: 3, title: 'Completed Todo 2', completed: true, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      // Check if URL contains status filter
+      if (url.includes('status=completed')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos.filter(t => t.completed)),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Active Todo');
+
+    // Click Completed filter
+    const completedButton = screen.getByRole('button', { name: /^Completed$/i });
+    await user.click(completedButton);
+
+    // Wait for filtered results
+    await waitFor(() => {
+      expect(screen.getByText('Completed Todo 1')).toBeInTheDocument();
+      expect(screen.getByText('Completed Todo 2')).toBeInTheDocument();
+      expect(screen.queryByText('Active Todo')).not.toBeInTheDocument();
+    });
+  });
+
+  test('shows all todos when All filter is clicked', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Active Todo', completed: false, priority: 'medium', tags: [] },
+      { id: 2, title: 'Completed Todo', completed: true, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('status=all')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Active Todo');
+
+    // Click All filter (get the first one - status filter All button)
+    const allButtons = screen.getAllByRole('button', { name: /^All$/i });
+    await user.click(allButtons[0]);
+
+    // Both todos should be visible
+    await waitFor(() => {
+      expect(screen.getByText('Active Todo')).toBeInTheDocument();
+      expect(screen.getByText('Completed Todo')).toBeInTheDocument();
+    });
+  });
+
+  test('highlights the active filter button', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Test Todo', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Test Todo');
+
+    // Get status filter buttons (ToggleButtons have aria-pressed)
+    const buttons = screen.getAllByRole('button');
+    const statusAllButton = buttons.find(btn => btn.getAttribute('value') === 'all' && btn.hasAttribute('aria-pressed'));
+    const statusActiveButton = buttons.find(btn => btn.getAttribute('value') === 'active' && btn.hasAttribute('aria-pressed'));
+
+    // All should be selected by default
+    expect(statusAllButton).toHaveAttribute('aria-pressed', 'true');
+    expect(statusActiveButton).toHaveAttribute('aria-pressed', 'false');
+
+    // Click Active
+    await user.click(statusActiveButton);
+
+    await waitFor(() => {
+      expect(statusActiveButton).toHaveAttribute('aria-pressed', 'true');
+      expect(statusAllButton).toHaveAttribute('aria-pressed', 'false');
+    });
+  });
+
+  test('combines status filter with priority filter', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Active High', completed: false, priority: 'high', tags: [] },
+      { id: 2, title: 'Completed High', completed: true, priority: 'high', tags: [] },
+      { id: 3, title: 'Active Low', completed: false, priority: 'low', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      // Check for combined filters
+      if (url.includes('status=active') && url.includes('priority=high')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([mockTodos[0]]), // Only Active High
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Active High');
+
+    // Click Active filter
+    const activeButton = screen.getByRole('button', { name: /^Active$/i });
+    await user.click(activeButton);
+
+    // Click High priority filter
+    const highButton = screen.getByRole('button', { name: /High/i });
+    await user.click(highButton);
+
+    // Should only show Active High
+    await waitFor(() => {
+      expect(screen.getByText('Active High')).toBeInTheDocument();
+      expect(screen.queryByText('Completed High')).not.toBeInTheDocument();
+      expect(screen.queryByText('Active Low')).not.toBeInTheDocument();
+    });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

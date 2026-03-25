@@ -21,6 +21,8 @@ import {
   InputLabel,
   ButtonGroup,
   Autocomplete,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -39,11 +41,12 @@ import './App.css';
 const API_URL = '/api/todos';
 
 // React Query hook for fetching todos
-const useTodos = (priorityFilter, tagFilter) => {
+const useTodos = (statusFilter, priorityFilter, tagFilter) => {
   return useQuery({
-    queryKey: ['todos', priorityFilter, tagFilter],
+    queryKey: ['todos', statusFilter, priorityFilter, tagFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
+      if (statusFilter) params.append('status', statusFilter);
       if (priorityFilter) params.append('priority', priorityFilter);
       if (tagFilter) params.append('tag', tagFilter);
       
@@ -81,6 +84,7 @@ function App() {
   const [editingTitle, setEditingTitle] = useState('');
   const [editingPriority, setEditingPriority] = useState('medium');
   const [editingTags, setEditingTags] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
   const queryClient = useQueryClient();
@@ -89,7 +93,7 @@ function App() {
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   // Fetch todos using React Query (filtered)
-  const { data: todos = [], isLoading, error } = useTodos(priorityFilter, tagFilter);
+  const { data: todos = [], isLoading, error } = useTodos(statusFilter, priorityFilter, tagFilter);
   
   // Fetch ALL todos (unfiltered) for deriving filter options
   const { data: allTodosData = [] } = useAllTodos();
@@ -266,12 +270,39 @@ function App() {
             TODO App
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Session 5: Agentic Development
+           Capstone Project
           </Typography>
         </Paper>
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Show
+              </Typography>
+              <ToggleButtonGroup
+                value={statusFilter}
+                exclusive
+                onChange={(e, newValue) => {
+                  if (newValue !== null) {
+                    setStatusFilter(newValue);
+                  }
+                }}
+                size="small"
+                aria-label="status filter"
+              >
+                <ToggleButton value="all" aria-pressed={statusFilter === 'all'}>
+                  All
+                </ToggleButton>
+                <ToggleButton value="active" aria-pressed={statusFilter === 'active'}>
+                  Active
+                </ToggleButton>
+                <ToggleButton value="completed" aria-pressed={statusFilter === 'completed'}>
+                  Completed
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
                 Filter by Priority
