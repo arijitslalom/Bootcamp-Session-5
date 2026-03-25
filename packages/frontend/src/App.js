@@ -23,6 +23,7 @@ import {
   Autocomplete,
   ToggleButtonGroup,
   ToggleButton,
+  Grid,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -32,6 +33,7 @@ import {
   Close as CloseIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ThemeContext } from './ThemeContext';
@@ -256,7 +258,7 @@ function App() {
         >
           <IconButton
             onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
             sx={{
               position: 'absolute',
               top: 16,
@@ -266,168 +268,239 @@ function App() {
           >
             {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
           </IconButton>
-          <Typography variant="h4" component="h1" gutterBottom>
-            TODO App
+          <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
+            To Do App
           </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.9 }}>
-           Capstone Project
+          <Typography variant="h6" sx={{ opacity: 0.9 }}>
+            Keep track of your tasks
           </Typography>
         </Paper>
 
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Show
-              </Typography>
-              <ToggleButtonGroup
-                value={statusFilter}
-                exclusive
-                onChange={(e, newValue) => {
-                  if (newValue !== null) {
-                    setStatusFilter(newValue);
-                  }
-                }}
-                size="small"
-                aria-label="status filter"
-              >
-                <ToggleButton value="all" aria-pressed={statusFilter === 'all'}>
-                  All
-                </ToggleButton>
-                <ToggleButton value="active" aria-pressed={statusFilter === 'active'}>
-                  Active
-                </ToggleButton>
-                <ToggleButton value="completed" aria-pressed={statusFilter === 'completed'}>
-                  Completed
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Filter by Priority
-              </Typography>
-              <ButtonGroup variant="outlined" size="small">
-                <Button 
-                  onClick={() => setPriorityFilter(null)}
-                  variant={priorityFilter === null ? 'contained' : 'outlined'}
-                >
-                  All
-                </Button>
-                <Button 
-                  onClick={() => setPriorityFilter('high')}
-                  variant={priorityFilter === 'high' ? 'contained' : 'outlined'}
-                  color="error"
-                >
-                  High
-                </Button>
-                <Button 
-                  onClick={() => setPriorityFilter('medium')}
-                  variant={priorityFilter === 'medium' ? 'contained' : 'outlined'}
-                  color="warning"
-                >
-                  Medium
-                </Button>
-                <Button 
-                  onClick={() => setPriorityFilter('low')}
-                  variant={priorityFilter === 'low' ? 'contained' : 'outlined'}
-                  color="info"
-                >
-                  Low
-                </Button>
-              </ButtonGroup>
-            </Box>
-
-            {allTags.length > 0 && (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Filter by Tag
+        {/* Summary Dashboard */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* Total Tasks Card */}
+          <Grid item xs={12} sm={6}>
+            <Card sx={{ 
+              bgcolor: 'primary.main', 
+              color: 'primary.contrastText',
+              borderRadius: 2
+            }}>
+              <CardContent>
+                <Typography variant="overline" sx={{ opacity: 0.9, display: 'block' }}>
+                  TOTAL TASKS
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {allTags.map(tag => (
-                    <Chip
-                      key={tag}
-                      label={tag}
-                      onClick={() => handleTagClick(tag)}
-                      color={tagFilter === tag ? 'primary' : 'default'}
-                      variant={tagFilter === tag ? 'filled' : 'outlined'}
-                      sx={{ mb: 1, cursor: 'pointer' }}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+                <Typography variant="h2" sx={{ fontWeight: 700, mt: 1 }}>
+                  {allTodosData.length}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          {/* Remaining Tasks Card */}
+          <Grid item xs={12} sm={6}>
+            <Card sx={{ 
+              bgcolor: 'secondary.main', 
+              color: 'secondary.contrastText',
+              borderRadius: 2
+            }}>
+              <CardContent>
+                <Typography variant="overline" sx={{ opacity: 0.9, display: 'block' }}>
+                  REMAINING TASKS
+                </Typography>
+                <Typography variant="h2" sx={{ fontWeight: 700, mt: 1 }}>
+                  {incompleteTodos}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
 
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box
-              component="form"
-              onSubmit={handleAddTodo}
-              sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-            >
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
-                  fullWidth
-                  value={newTodoTitle}
-                  onChange={(e) => setNewTodoTitle(e.target.value)}
-                  placeholder="What needs to be done?"
-                  variant="outlined"
-                  size="medium"
-                />
-                <FormControl sx={{ minWidth: 120 }}>
-                  <InputLabel id="priority-label">Priority</InputLabel>
-                  <Select
-                    labelId="priority-label"
-                    value={newTodoPriority}
-                    label="Priority"
-                    onChange={(e) => setNewTodoPriority(e.target.value)}
-                  >
-                    <MenuItem value="high">High</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="low">Low</MenuItem>
-                  </Select>
-                </FormControl>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{ minWidth: 120 }}
+        {/* Two-Column Layout: CAPTURE (left) and FOCUS (right) */}
+        <Grid container spacing={3}>
+          {/* LEFT COLUMN: CAPTURE - Input Section */}
+          <Grid item xs={12} lg={5}>
+            <Card elevation={3} sx={{ borderRadius: 2 }}>
+              <CardContent sx={{ p: 3 }}>
+                {/* Section Header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <AddIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    CAPTURE
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Add New Task
+                </Typography>
+                
+                {/* Add Todo Form */}
+                <Box
+                  component="form"
+                  onSubmit={handleAddTodo}
+                  sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}
                 >
-                  Add
-                </Button>
-              </Box>
-              <Autocomplete
-                multiple
-                freeSolo
-                options={allTags}
-                value={newTodoTags}
-                onChange={(event, newValue) => setNewTodoTags(newValue)}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      value={newTodoTitle}
+                      onChange={(e) => setNewTodoTitle(e.target.value)}
+                      placeholder="What needs to be done?"
+                      label="Task title"
                       variant="outlined"
-                      label={option}
-                      {...getTagProps({ index })}
-                      key={index}
+                      size="medium"
                     />
-                  ))
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Tags"
-                    placeholder="Add tags..."
-                    size="small"
+                    <FormControl sx={{ minWidth: 120 }}>
+                      <InputLabel id="priority-label">Priority</InputLabel>
+                      <Select
+                        labelId="priority-label"
+                        value={newTodoPriority}
+                        label="Priority"
+                        onChange={(e) => setNewTodoPriority(e.target.value)}
+                      >
+                        <MenuItem value="high">High</MenuItem>
+                        <MenuItem value="medium">Medium</MenuItem>
+                        <MenuItem value="low">Low</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      sx={{ minWidth: 120 }}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  <Autocomplete
+                    multiple
+                    freeSolo
+                    options={allTags}
+                    value={newTodoTags}
+                    onChange={(event, newValue) => setNewTodoTags(newValue)}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip
+                          variant="outlined"
+                          label={option}
+                          {...getTagProps({ index })}
+                          key={index}
+                        />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Tags"
+                        placeholder="Add tags..."
+                        size="small"
+                      />
+                    )}
                   />
-                )}
-              />
-            </Box>
-          </CardContent>
-        </Card>
+                </Box>
 
-        {isLoading && (
+                {/* Filters */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Show
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={statusFilter}
+                    exclusive
+                    onChange={(e, newValue) => {
+                      if (newValue !== null) {
+                        setStatusFilter(newValue);
+                      }
+                    }}
+                    size="small"
+                    aria-label="status filter"
+                  >
+                    <ToggleButton value="all" aria-pressed={statusFilter === 'all'}>
+                      All
+                    </ToggleButton>
+                    <ToggleButton value="active" aria-pressed={statusFilter === 'active'}>
+                      Active
+                    </ToggleButton>
+                    <ToggleButton value="completed" aria-pressed={statusFilter === 'completed'}>
+                      Completed
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Filter by Priority
+                  </Typography>
+                  <ButtonGroup variant="outlined" size="small">
+                    <Button 
+                      onClick={() => setPriorityFilter(null)}
+                      variant={priorityFilter === null ? 'contained' : 'outlined'}
+                    >
+                      All
+                    </Button>
+                    <Button 
+                      onClick={() => setPriorityFilter('high')}
+                      variant={priorityFilter === 'high' ? 'contained' : 'outlined'}
+                      color="error"
+                    >
+                      High
+                    </Button>
+                    <Button 
+                      onClick={() => setPriorityFilter('medium')}
+                      variant={priorityFilter === 'medium' ? 'contained' : 'outlined'}
+                      color="warning"
+                    >
+                      Medium
+                    </Button>
+                    <Button 
+                      onClick={() => setPriorityFilter('low')}
+                      variant={priorityFilter === 'low' ? 'contained' : 'outlined'}
+                      color="info"
+                    >
+                      Low
+                    </Button>
+                  </ButtonGroup>
+                </Box>
+
+                {allTags.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Filter by Tag
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {allTags.map(tag => (
+                        <Chip
+                          key={tag}
+                          label={tag}
+                          onClick={() => handleTagClick(tag)}
+                          color={tagFilter === tag ? 'primary' : 'default'}
+                          variant={tagFilter === tag ? 'filled' : 'outlined'}
+                          sx={{ mb: 1, cursor: 'pointer' }}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          {/* RIGHT COLUMN: FOCUS - Task List Section */}
+          <Grid item xs={12} lg={7}>
+            <Card elevation={3} sx={{ borderRadius: 2 }}>
+              <CardContent sx={{ p: 3 }}>
+                {/* Section Header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <CheckCircleIcon sx={{ mr: 1, color: 'success.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    FOCUS
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Tasks
+                </Typography>
+
+                {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
@@ -625,6 +698,10 @@ function App() {
           <Chip label={`${incompleteTodos} items left`} color="primary" />
           <Chip label={`${completedTodos} completed`} color="success" />
         </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
     </Box>
   );

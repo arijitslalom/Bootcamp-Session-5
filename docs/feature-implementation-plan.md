@@ -1,7 +1,16 @@
 # Feature Implementation Plan
 
 ## Overview
-This document provides a detailed implementation plan for new TODO app features, organized by category. Each feature follows the Test-Driven Development (TDD) workflow: Write tests → Implement → Validate → Refactor.
+This document provides a detailed implementation plan for new TODO app **functional features**, organized by category. Each feature follows the Test-Driven Development (TDD) workflow: Write tests → Implement → Validate → Refactor.
+
+**Related Documents:**
+- **[UI/UX Improvement Plan](ui-improvement-plan.md)** - Comprehensive plan for modernizing the visual design and user experience (two-column layout, enhanced components, responsive design, etc.)
+
+**Scope Clarification:**
+- **This document:** Focuses on functional features (data model changes, API endpoints, business logic)
+- **UI Improvement Plan:** Focuses on presentation layer (layout, typography, spacing, visual design, accessibility)
+
+Both plans work together: functional features provide the capabilities, while UI improvements enhance how users interact with them.
 
 ---
 
@@ -1412,7 +1421,7 @@ For each feature:
 
 ## Summary
 
-This plan provides a comprehensive roadmap for implementing:
+This plan provides a comprehensive roadmap for implementing **functional features**:
 - **4 Priority & Organization Features**: Priority levels, tags, drag-drop, due dates
 - **4 Filtering & View Management Features**: Status filters, search, sort, bulk actions
 - **4 Enhanced User Experience Features**: Subtasks, notes, undo, dark mode
@@ -1423,17 +1432,28 @@ Each feature includes:
 - Estimated effort and dependencies
 - Code examples and implementation guidance
 
-The total implementation time across all features is approximately **60-77 hours**, making this a 5-6 week project if working 10-15 hours per week.
+### Project Components
+
+**1. Functional Features (This Document)**
+- **Total Estimated Time:** 60-77 hours
+- **Completed:** 4 of 12 features (33%)
+- **Time Invested:** 2 hours 44 minutes
+- **Scope:** Data models, API endpoints, business logic, state management
+
+**2. UI/UX Improvements ([see UI Improvement Plan](ui-improvement-plan.md))**
+- **Total Estimated Time:** 10-15 hours
+- **Completed:** 0 of 5 phases (0%)
+- **Scope:** Layout redesign, visual components, responsive design, accessibility
+
+**Combined Project Total:** 70-92 hours estimated
 
 **Note:** This plan uses in-memory storage. Data will reset on server restart. For production use with data persistence, you would need to add database integration and user authentication separately.
-
-Start with Phase 1 (foundation) and progress sequentially for best results!
 
 ---
 
 ## 📊 Overall Progress (As of March 25, 2026)
 
-### ✅ Completed Features: 4 of 12 (33%)
+### ✅ Completed Functional Features: 4 of 12 (33%)
 
 **Priority & Organization:**
 1. ✅ Priority Levels - 40 minutes
@@ -1455,8 +1475,22 @@ Start with Phase 1 (foundation) and progress sequentially for best results!
 - **Frontend:** 31 tests passing
 - **Total:** 95 tests passing (100% pass rate)
 
-### Next Recommended Features
+### Next Recommended Work
+
+**Option A: Continue Functional Features**
 Following the implementation sequence recommendation:
 - Phase 2: Due Dates (5-6h est.)
 - Phase 2: Sort Options (3-4h est.)
 - Phase 2: Search/Filter Bar (3-4h est.)
+
+**Option B: Implement UI/UX Improvements** ⭐ **RECOMMENDED**
+Modernize the visual design before adding more features:
+- See **[UI Improvement Plan](ui-improvement-plan.md)** for detailed steps
+- Phase 1: Layout & Structure Redesign (2-3h)
+- Phase 2: Enhanced Task Input Section (2-3h)
+- Phase 3: Enhanced Task List Section (3-4h)
+- Phase 4: Typography & Spacing Refinement (1-2h)
+- Phase 5: Responsive Design & Polish (2-3h)
+- **Benefits:** Better foundation for future features, improved user experience, modern aesthetic
+
+**Recommendation:** Implement UI improvements first (Option B) to establish a solid visual foundation, then continue with functional features. This approach ensures new features integrate seamlessly into a polished interface.

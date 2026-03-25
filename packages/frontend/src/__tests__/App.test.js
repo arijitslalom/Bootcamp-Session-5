@@ -22,7 +22,7 @@ global.fetch = jest.fn(() =>
   })
 );
 
-test('renders TODO App heading', async () => {
+test('renders To Do App heading', async () => {
   const testQueryClient = createTestQueryClient();
 
   render(
@@ -31,7 +31,7 @@ test('renders TODO App heading', async () => {
     </QueryClientProvider>
   );
 
-  const headingElement = await screen.findByText(/TODO App/i);
+  const headingElement = await screen.findByText(/To Do App/i);
   expect(headingElement).toBeInTheDocument();
 });
 
@@ -158,7 +158,7 @@ test('displays empty state message when there are no todos', async () => {
   );
 
   // Wait for data to load (app heading should be visible)
-  await screen.findByText(/TODO App/i);
+  await screen.findByText(/To Do App/i);
 
   // Verify empty state message is displayed
   await waitFor(() => {
@@ -285,7 +285,7 @@ describe('Priority Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Should have a priority selector in the form
     const prioritySelect = screen.getByLabelText(/priority/i);
@@ -337,7 +337,7 @@ describe('Priority Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Select high priority
     const prioritySelect = screen.getByLabelText(/priority/i);
@@ -584,7 +584,7 @@ describe('Priority Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Should have filter buttons for all priorities
     const allButtons = screen.getAllByRole('button');
@@ -614,7 +614,7 @@ describe('Tags/Categories Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Should have a tag input in the form
     const tagInput = screen.getByLabelText(/tags/i);
@@ -667,7 +667,7 @@ describe('Tags/Categories Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Enter todo title
     const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
@@ -932,7 +932,7 @@ describe('Tags/Categories Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Enter todo title without tags
     const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
@@ -996,10 +996,10 @@ describe('Dark/Light Theme Toggle', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Should have a theme toggle button with appropriate aria-label
-    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+    const themeToggle = screen.getByRole('button', { name: /toggle theme/i });
     expect(themeToggle).toBeInTheDocument();
   });
 
@@ -1024,10 +1024,10 @@ describe('Dark/Light Theme Toggle', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Find theme toggle button
-    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+    const themeToggle = screen.getByRole('button', { name: /toggle theme/i });
 
     // Click to toggle theme
     await user.click(themeToggle);
@@ -1065,10 +1065,10 @@ describe('Dark/Light Theme Toggle', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Find and click theme toggle
-    const themeToggle = screen.getByRole('button', { name: /switch to dark mode|switch to light mode/i });
+    const themeToggle = screen.getByRole('button', { name: /toggle theme/i });
     await user.click(themeToggle);
 
     // Wait for localStorage to be updated
@@ -1103,7 +1103,7 @@ describe('Dark/Light Theme Toggle', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Verify theme was loaded from localStorage
     expect(localStorage.getItem('theme')).toBe('dark');
@@ -1145,7 +1145,7 @@ describe('Dark/Light Theme Toggle', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // App should detect system preference and potentially initialize with it
     // This test verifies the matchMedia API was called
@@ -1170,7 +1170,7 @@ describe('Status Filter Feature', () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText(/TODO App/i);
+    await screen.findByText(/To Do App/i);
 
     // Check for filter buttons - use getAllByRole since there might be multiple "All" buttons
     const allButtons = screen.getAllByRole('button', { name: /^All$/i });
@@ -1406,6 +1406,220 @@ describe('Status Filter Feature', () => {
       expect(screen.queryByText('Completed High')).not.toBeInTheDocument();
       expect(screen.queryByText('Active Low')).not.toBeInTheDocument();
     });
+  });
+});
+
+// ========================
+// Enhanced Header Tests (UI Improvement Phase 1)
+// ========================
+
+describe('Enhanced Header Section', () => {
+  test('renders enhanced header with main title', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    const titleElement = await screen.findByRole('heading', { name: /To Do App/i });
+    expect(titleElement).toBeInTheDocument();
+  });
+
+  test('renders enhanced header with subtitle', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    const subtitleElement = await screen.findByText(/Keep track of your tasks/i);
+    expect(subtitleElement).toBeInTheDocument();
+  });
+
+  test('renders theme toggle button with aria-label in header', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    const themeToggle = await screen.findByLabelText(/toggle theme/i);
+    expect(themeToggle).toBeInTheDocument();
+  });
+});
+
+// ========================
+// Summary Dashboard Tests (UI Improvement Phase 1)
+// ========================
+
+describe('Summary Dashboard', () => {
+  test('displays total tasks count in summary card', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task 1', completed: false },
+      { id: 2, title: 'Task 2', completed: true },
+      { id: 3, title: 'Task 3', completed: false },
+    ];
+
+    // Mock fetch to handle both filtered and unfiltered queries
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    // Wait for data to load
+    await screen.findByText('Task 1');
+
+    // Check for "TOTAL TASKS" label
+    expect(screen.getByText(/TOTAL TASKS/i)).toBeInTheDocument();
+    // Check for count displayed prominently
+    const totalTasksRegion = screen.getByText(/TOTAL TASKS/i).closest('.MuiCardContent-root');
+    expect(totalTasksRegion).toHaveTextContent('3');
+  });
+
+  test('displays remaining tasks count in summary card', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task 1', completed: false },
+      { id: 2, title: 'Task 2', completed: true },
+      { id: 3, title: 'Task 3', completed: false },
+      { id: 4, title: 'Task 4', completed: true },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    // Wait for data to load
+    await screen.findByText('Task 1');
+
+    // Check for "REMAINING TASKS" label
+    expect(screen.getByText(/REMAINING TASKS/i)).toBeInTheDocument();
+    // Check for remaining count (2 incomplete tasks)
+    const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
+    expect(remainingRegion).toHaveTextContent('2');
+  });
+
+  test('displays zero remaining tasks when all are completed', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task 1', completed: true },
+      { id: 2, title: 'Task 2', completed: true },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    // Wait for data to load
+    await screen.findByText('Task 1');
+
+    const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
+    expect(remainingRegion).toHaveTextContent('0');
+  });
+});
+
+// ========================
+// Two-Column Layout Tests (UI Improvement Phase 1)
+// ========================
+
+describe('Two-Column Layout', () => {
+  test('renders CAPTURE section with header', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Check for CAPTURE section header
+    expect(screen.getByText(/^CAPTURE$/i)).toBeInTheDocument();
+  });
+
+  test('renders FOCUS section with header', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Check for FOCUS section header
+    expect(screen.getByText(/^FOCUS$/i)).toBeInTheDocument();
+  });
+
+  test('renders Add New Task label in CAPTURE section', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Check for "Add New Task" subtitle
+    expect(screen.getByText(/Add New Task/i)).toBeInTheDocument();
+  });
+
+  test('renders Tasks label in FOCUS section', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Check for "Tasks" subtitle - be specific to avoid matching "TOTAL TASKS"
+    const tasksLabels = screen.getAllByText((content, element) => {
+      return element?.tagName.toLowerCase() === 'h6' && /^Tasks$/i.test(content);
+    });
+    expect(tasksLabels.length).toBeGreaterThan(0);
   });
 });
 
