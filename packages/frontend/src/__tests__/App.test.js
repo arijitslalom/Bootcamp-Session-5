@@ -135,11 +135,9 @@ test('displays correct stats for incomplete and completed todos', async () => {
 
   // Verify stats show correct counts
   // Check REMAINING TASKS shows 3
-  const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
-  expect(remainingRegion).toHaveTextContent('3');
+  expect(screen.getByRole('region', { name: /remaining tasks count/i })).toHaveTextContent('3');
   // Check TOTAL TASKS shows 5
-  const totalRegion = screen.getByText(/TOTAL TASKS/i).closest('.MuiCardContent-root');
-  expect(totalRegion).toHaveTextContent('5');
+  expect(screen.getByRole('region', { name: /total tasks count/i })).toHaveTextContent('5');
 });
 
 test('displays empty state message when there are no todos', async () => {
@@ -365,10 +363,13 @@ describe('Priority Feature', () => {
         call => call[1]?.method === 'POST'
       );
       expect(postCalls.length).toBeGreaterThan(0);
-      
-      const postBody = JSON.parse(postCalls[0][1].body);
-      expect(postBody.priority).toBe('high');
     });
+
+    const postCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'POST'
+    );
+    const postBody = JSON.parse(postCalls[0][1].body);
+    expect(postBody.priority).toBe('high');
   });
 
   test('displays priority badge for each todo', async () => {
@@ -485,8 +486,8 @@ describe('Priority Feature', () => {
     // Should only show high priority todos
     await waitFor(() => {
       expect(screen.getByText('High Task 1')).toBeInTheDocument();
-      expect(screen.getByText('High Task 2')).toBeInTheDocument();
     });
+    expect(screen.getByText('High Task 2')).toBeInTheDocument();
   });
 
   test('allows editing priority in edit mode', async () => {
@@ -571,10 +572,13 @@ describe('Priority Feature', () => {
         call => call[1]?.method === 'PUT'
       );
       expect(putCalls.length).toBeGreaterThan(0);
-      
-      const putBody = JSON.parse(putCalls[0][1].body);
-      expect(putBody.priority).toBe('high');
     });
+
+    const putCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'PUT'
+    );
+    const putBody = JSON.parse(putCalls[0][1].body);
+    expect(putBody.priority).toBe('high');
   });
 
   test('shows all priority filter options', async () => {
@@ -705,11 +709,14 @@ describe('Tags/Categories Feature', () => {
         call => call[1]?.method === 'POST'
       );
       expect(postCalls.length).toBeGreaterThan(0);
-      
-      const postBody = JSON.parse(postCalls[0][1].body);
-      expect(postBody.tags).toContain('work');
-      expect(postBody.tags).toContain('urgent');
     });
+
+    const postCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'POST'
+    );
+    const postBody = JSON.parse(postCalls[0][1].body);
+    expect(postBody.tags).toContain('work');
+    expect(postBody.tags).toContain('urgent');
   });
 
   test('displays tags as chips on todo items', async () => {
@@ -1089,8 +1096,9 @@ describe('Dark/Light Theme Toggle', () => {
     await waitFor(() => {
       const savedTheme = localStorage.getItem('theme');
       expect(savedTheme).toBeTruthy();
-      expect(['light', 'dark']).toContain(savedTheme);
     });
+    const savedTheme = localStorage.getItem('theme');
+    expect(['light', 'dark']).toContain(savedTheme);
   });
 
   test('loads theme preference from localStorage on mount', async () => {
@@ -1207,9 +1215,7 @@ describe('Status Filter Feature', () => {
       { id: 3, title: 'Active Todo 2', completed: false, priority: 'medium', tags: [] },
     ];
 
-    let fetchCallCount = 0;
     global.fetch.mockImplementation((url) => {
-      fetchCallCount++;
       
       // Check if URL contains status filter
       if (url.includes('status=active')) {
@@ -1240,9 +1246,9 @@ describe('Status Filter Feature', () => {
     // Wait for filtered results
     await waitFor(() => {
       expect(screen.getByText('Active Todo 1')).toBeInTheDocument();
-      expect(screen.getByText('Active Todo 2')).toBeInTheDocument();
-      expect(screen.queryByText('Completed Todo')).not.toBeInTheDocument();
     });
+    expect(screen.getByText('Active Todo 2')).toBeInTheDocument();
+    expect(screen.queryByText('Completed Todo')).not.toBeInTheDocument();
   });
 
   test('shows only completed todos when Completed filter is clicked', async () => {
@@ -1285,9 +1291,9 @@ describe('Status Filter Feature', () => {
     // Wait for filtered results
     await waitFor(() => {
       expect(screen.getByText('Completed Todo 1')).toBeInTheDocument();
-      expect(screen.getByText('Completed Todo 2')).toBeInTheDocument();
-      expect(screen.queryByText('Active Todo')).not.toBeInTheDocument();
     });
+    expect(screen.getByText('Completed Todo 2')).toBeInTheDocument();
+    expect(screen.queryByText('Active Todo')).not.toBeInTheDocument();
   });
 
   test('shows all todos when All filter is clicked', async () => {
@@ -1328,8 +1334,8 @@ describe('Status Filter Feature', () => {
     // Both todos should be visible
     await waitFor(() => {
       expect(screen.getByText('Active Todo')).toBeInTheDocument();
-      expect(screen.getByText('Completed Todo')).toBeInTheDocument();
     });
+    expect(screen.getByText('Completed Todo')).toBeInTheDocument();
   });
 
   test('highlights the active filter button', async () => {
@@ -1369,8 +1375,8 @@ describe('Status Filter Feature', () => {
 
     await waitFor(() => {
       expect(statusActiveButton).toHaveAttribute('aria-pressed', 'true');
-      expect(statusAllButton).toHaveAttribute('aria-pressed', 'false');
     });
+    expect(statusAllButton).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('combines status filter with priority filter', async () => {
@@ -1425,9 +1431,9 @@ describe('Status Filter Feature', () => {
     // Should only show Active High
     await waitFor(() => {
       expect(screen.getByText('Active High')).toBeInTheDocument();
-      expect(screen.queryByText('Completed High')).not.toBeInTheDocument();
-      expect(screen.queryByText('Active Low')).not.toBeInTheDocument();
     });
+    expect(screen.queryByText('Completed High')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active Low')).not.toBeInTheDocument();
   });
 });
 
@@ -1510,8 +1516,7 @@ describe('Summary Dashboard', () => {
     // Check for "TOTAL TASKS" label
     expect(screen.getByText(/TOTAL TASKS/i)).toBeInTheDocument();
     // Check for count displayed prominently
-    const totalTasksRegion = screen.getByText(/TOTAL TASKS/i).closest('.MuiCardContent-root');
-    expect(totalTasksRegion).toHaveTextContent('3');
+    expect(screen.getByRole('region', { name: /total tasks count/i })).toHaveTextContent('3');
   });
 
   test('displays remaining tasks count in summary card', async () => {
@@ -1543,8 +1548,7 @@ describe('Summary Dashboard', () => {
     // Check for "REMAINING TASKS" label
     expect(screen.getByText(/REMAINING TASKS/i)).toBeInTheDocument();
     // Check for remaining count (2 incomplete tasks)
-    const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
-    expect(remainingRegion).toHaveTextContent('2');
+    expect(screen.getByRole('region', { name: /remaining tasks count/i })).toHaveTextContent('2');
   });
 
   test('displays zero remaining tasks when all are completed', async () => {
@@ -1571,8 +1575,7 @@ describe('Summary Dashboard', () => {
     // Wait for data to load
     await screen.findByText('Task 1');
 
-    const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
-    expect(remainingRegion).toHaveTextContent('0');
+    expect(screen.getByRole('region', { name: /remaining tasks count/i })).toHaveTextContent('0');
   });
 });
 
@@ -1983,10 +1986,13 @@ describe('Due Date Feature', () => {
         call => call[1]?.method === 'POST'
       );
       expect(postCalls.length).toBeGreaterThan(0);
-
-      const postBody = JSON.parse(postCalls[0][1].body);
-      expect(postBody.dueDate).toBe('2026-04-15');
     });
+
+    const postCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'POST'
+    );
+    const postBody = JSON.parse(postCalls[0][1].body);
+    expect(postBody.dueDate).toBe('2026-04-15');
   });
 
   test('creates todo without due date (defaults to null)', async () => {
@@ -2042,10 +2048,13 @@ describe('Due Date Feature', () => {
         call => call[1]?.method === 'POST'
       );
       expect(postCalls.length).toBeGreaterThan(0);
-
-      const postBody = JSON.parse(postCalls[0][1].body);
-      expect(postBody.dueDate).toBeFalsy();
     });
+
+    const postCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'POST'
+    );
+    const postBody = JSON.parse(postCalls[0][1].body);
+    expect(postBody.dueDate).toBeFalsy();
   });
 
   test('displays due date on todo items', async () => {
@@ -2213,7 +2222,6 @@ describe('Due Date Feature', () => {
 
 describe('Sort Feature', () => {
   test('renders sort dropdown with sort options', async () => {
-    const user = userEvent.setup();
     const testQueryClient = createTestQueryClient();
 
     global.fetch.mockImplementation(() =>

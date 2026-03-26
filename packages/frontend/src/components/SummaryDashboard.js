@@ -17,15 +17,14 @@ function SummaryDashboard({ totalTasks, remainingTasks }) {
             bgcolor: 'primary.main', 
             color: 'primary.contrastText',
             borderRadius: 2,
-            aspectRatio: '3 / 2',
+            aspectRatio: '2 / 1',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
           }}
             role="region"
             aria-label="Total tasks count"
           >
-            <CardContent sx={{ textAlign: 'center', p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <CardContent sx={{ textAlign: 'left', p: 2.5, '&:last-child': { pb: 2.5 } }}>
               <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', fontWeight: 600 }}>
                 TOTAL TASKS
               </Typography>
@@ -42,15 +41,14 @@ function SummaryDashboard({ totalTasks, remainingTasks }) {
             bgcolor: 'secondary.main', 
             color: 'secondary.contrastText',
             borderRadius: 2,
-            aspectRatio: '3 / 2',
+            aspectRatio: '2 / 1',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
           }}
             role="region"
             aria-label="Remaining tasks count"
           >
-            <CardContent sx={{ textAlign: 'center', p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <CardContent sx={{ textAlign: 'left', p: 2.5, '&:last-child': { pb: 2.5 } }}>
               <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', fontWeight: 600 }}>
                 REMAINING TASKS
               </Typography>
