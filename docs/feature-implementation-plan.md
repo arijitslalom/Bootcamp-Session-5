@@ -1454,10 +1454,15 @@ Based on dependencies and complexity, here's the recommended implementation orde
 **Total: ~7-9 hours** | **Completed: 1/2 features (45 minutes actual)**
 
 ### Phase 4: Power Features (Week 4)
-10. Subtasks/Checklists (7-8h)
-11. Bulk Actions (5-6h)
+10. Bulk Actions (5-6h)
+11. Subtasks/Checklists (7-8h)
 
 **Total: ~12-14 hours**
+
+**Recommended Sequence Rationale:**
+- **Undo/Redo next** — completes Phase 3 and addresses a key usability gap (accidental deletes are permanent)
+- **Bulk Actions before Subtasks** — moderate complexity, natural extension of the existing list UI (checkboxes + action bar), pairs well with undo/redo
+- **Subtasks last** — most complex feature (nested data model, new API endpoints, significant UI), benefits from all other features being stable first
 
 ### Phase 5: Polish & Performance (Week 5)
 13. Testing & Bug Fixes (8-10h)
@@ -1642,8 +1647,8 @@ Both backend and frontend had grown into large monolithic files that were diffic
 
 **Continue with Functional Features** ⭐ **RECOMMENDED**
 With Phase 1, Phase 2, and Notes/Description all complete ✅, continue Phase 3:
-- Phase 3: Undo/Redo (4-5h est.) - Improve user confidence with reversible actions
-- Phase 4: Subtasks/Checklists (7-8h est.) - Break down complex tasks into steps
-- Phase 4: Bulk Actions (5-6h est.) - Efficiently manage multiple tasks at once
+- Phase 3: Undo/Redo (4-5h est.) — Completes Phase 3, prevents accidental data loss
+- Phase 4: Bulk Actions (5-6h est.) — Natural list UI extension, pairs with undo/redo
+- Phase 4: Subtasks/Checklists (7-8h est.) — Most complex, save for last when all else is stable
 
-**Rationale:** With Phase 1 fully complete (priority, tags, due dates ✅), Phase 2 fully complete (status filters, search, sort ✅), UI/UX improvements complete (all 5 phases ✅), and Notes/Description complete ✅, the app has strong foundational features plus enhanced UX. Continue Phase 3 with Undo/Redo, then move to Phase 4 power features.
+**Rationale:** Undo/Redo finishes Phase 3 and is high-impact (accidental deletes are currently permanent). Bulk Actions comes next as a moderate-complexity list management feature that builds on existing UI patterns. Subtasks is saved for last due to its nested data model complexity — it benefits from having all other features stable.
