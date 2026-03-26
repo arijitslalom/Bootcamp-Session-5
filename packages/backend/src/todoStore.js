@@ -1,8 +1,17 @@
+const seedTodos = require('./seedData');
+
 // In-memory data store for TODOs
 let todos = [];
 
 // Counter for ID generation
 let nextId = 1;
+
+// Load seed data on startup
+function loadSeedData() {
+  seedTodos.forEach((todo) => {
+    addTodo({ ...todo, createdAt: new Date().toISOString() });
+  });
+}
 
 function getTodos() {
   return todos;
@@ -39,4 +48,5 @@ module.exports = {
   findTodoIndexById,
   removeTodoByIndex,
   resetStore,
+  loadSeedData,
 };
