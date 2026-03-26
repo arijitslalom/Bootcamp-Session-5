@@ -11,10 +11,18 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   FilterList as FilterListIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
 
 function TodoFilters({
@@ -25,9 +33,40 @@ function TodoFilters({
   tagFilter,
   allTags,
   onTagClick,
+  sortField,
+  setSortField,
+  sortOrder,
+  setSortOrder,
 }) {
   return (
     <Box sx={{ mb: 3 }}>
+      {/* Sort Controls */}
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="sort-by-label">Sort by</InputLabel>
+          <Select
+            labelId="sort-by-label"
+            label="Sort by"
+            value={sortField}
+            onChange={(e) => setSortField(e.target.value)}
+          >
+            <MenuItem value="createdAt">Date Added</MenuItem>
+            <MenuItem value="title">Title</MenuItem>
+            <MenuItem value="priority">Priority</MenuItem>
+            <MenuItem value="dueDate">Due Date</MenuItem>
+          </Select>
+        </FormControl>
+        <Tooltip title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}>
+          <IconButton
+            aria-label="sort order"
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            size="small"
+          >
+            {sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
       {/* Status Filter - Prominent */}
       <ToggleButtonGroup 
         value={statusFilter}

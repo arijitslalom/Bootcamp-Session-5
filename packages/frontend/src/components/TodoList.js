@@ -28,6 +28,10 @@ function TodoList({
   tagFilter,
   allTags,
   onTagClick,
+  sortField,
+  setSortField,
+  sortOrder,
+  setSortOrder,
   editingId,
   editingTitle,
   setEditingTitle,
@@ -50,14 +54,10 @@ function TodoList({
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <CheckCircleIcon sx={{ mr: 1, color: 'success.main' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            FOCUS
+            Tasks
           </Typography>
         </Box>
         
-        <Typography variant="subtitle1" gutterBottom sx={{ mb: 2 }}>
-          Tasks
-        </Typography>
-
         {/* Filter Section */}
         <TodoFilters
           statusFilter={statusFilter}
@@ -67,6 +67,10 @@ function TodoList({
           tagFilter={tagFilter}
           allTags={allTags}
           onTagClick={onTagClick}
+          sortField={sortField}
+          setSortField={setSortField}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
         />
 
         {/* Loading State */}

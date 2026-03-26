@@ -2211,6 +2211,197 @@ describe('Due Date Feature', () => {
   });
 });
 
+describe('Sort Feature', () => {
+  test('renders sort dropdown with sort options', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Sort dropdown should be visible
+    expect(screen.getByLabelText(/sort by/i)).toBeInTheDocument();
+  });
+
+  test('renders sort order toggle button', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Sort order toggle button should exist
+    expect(screen.getByRole('button', { name: /sort order/i })).toBeInTheDocument();
+  });
+
+  test('changing sort field triggers API call with sort param', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Bravo Task', priority: 'medium', completed: false },
+      { id: 2, title: 'Alpha Task', priority: 'high', completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Bravo Task');
+
+    // Open sort dropdown and select "Title"
+    const sortSelect = screen.getByLabelText(/sort by/i);
+    await user.click(sortSelect);
+    
+    const titleOption = await screen.findByRole('option', { name: /title/i });
+    await user.click(titleOption);
+
+    // Verify fetch was called with sort parameter
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url => typeof url === 'string' && url.includes('sort=title'))).toBe(true);
+    });
+  });
+
+  test('toggling sort order triggers API call with order param', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task 1', priority: 'medium', completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Task 1');
+
+    // Click sort order toggle button
+    const orderToggle = screen.getByRole('button', { name: /sort order/i });
+    await user.click(orderToggle);
+
+    // Verify fetch was called with order=desc
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url => typeof url === 'string' && url.includes('order=desc'))).toBe(true);
+    });
+  });
+
+  test('sort options include all expected fields', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Open sort dropdown
+    const sortSelect = screen.getByLabelText(/sort by/i);
+    await user.click(sortSelect);
+
+    // Verify all sort options are available
+    expect(await screen.findByRole('option', { name: /date added/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /title/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /priority/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /due date/i })).toBeInTheDocument();
+  });
+
+  test('sort combines with existing filters', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Active Task', priority: 'high', completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Set status filter to "Active"
+    const activeToggle = screen.getByRole('button', { name: /active/i });
+    await user.click(activeToggle);
+
+    // Change sort to title
+    const sortSelect = screen.getByLabelText(/sort by/i);
+    await user.click(sortSelect);
+    const titleOption = await screen.findByRole('option', { name: /title/i });
+    await user.click(titleOption);
+
+    // Verify fetch includes both status and sort params
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url => 
+        typeof url === 'string' && url.includes('status=active') && url.includes('sort=title')
+      )).toBe(true);
+    });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

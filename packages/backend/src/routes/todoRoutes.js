@@ -50,6 +50,30 @@ router.get('/', (req, res) => {
     );
   }
 
+  // Sort results
+  const validSortFields = ['createdAt', 'title', 'priority', 'dueDate'];
+  const sortField = validSortFields.includes(req.query.sort) ? req.query.sort : 'createdAt';
+  const sortOrder = req.query.order === 'desc' ? -1 : 1;
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+
+  filteredTodos.sort((a, b) => {
+    if (sortField === 'title') {
+      return a.title.localeCompare(b.title) * sortOrder;
+    }
+    if (sortField === 'priority') {
+      return ((priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)) * sortOrder;
+    }
+    if (sortField === 'dueDate') {
+      // Null due dates go to the end regardless of sort order
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return (new Date(a.dueDate) - new Date(b.dueDate)) * sortOrder;
+    }
+    // Default: createdAt
+    return (new Date(a.createdAt) - new Date(b.createdAt)) * sortOrder;
+  });
+
   res.json(filteredTodos);
 });
 

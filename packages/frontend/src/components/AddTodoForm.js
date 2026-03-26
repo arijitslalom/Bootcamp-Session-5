@@ -36,13 +36,9 @@ function AddTodoForm({
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <AddIcon sx={{ mr: 1, color: 'primary.main' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            CAPTURE
+            Add New Task
           </Typography>
         </Box>
-        
-        <Typography variant="subtitle1" gutterBottom sx={{ mb: 2 }}>
-          Add New Task
-        </Typography>
         
         {/* Add Todo Form */}
         <Box

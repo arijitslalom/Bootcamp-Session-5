@@ -27,10 +27,12 @@ function App() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Fetch todos using React Query (filtered)
-  const { data: todos = [], isLoading, error } = useTodos(statusFilter, priorityFilter, tagFilter);
+  const { data: todos = [], isLoading, error } = useTodos(statusFilter, priorityFilter, tagFilter, sortField, sortOrder);
   
   // Fetch ALL todos (unfiltered) for deriving filter options
   const { data: allTodosData = [] } = useAllTodos();
@@ -166,6 +168,10 @@ function App() {
               tagFilter={tagFilter}
               allTags={allTags}
               onTagClick={handleTagClick}
+              sortField={sortField}
+              setSortField={setSortField}
+              sortOrder={sortOrder}
+              setSortOrder={setSortOrder}
               editingId={editingId}
               editingTitle={editingTitle}
               setEditingTitle={setEditingTitle}
