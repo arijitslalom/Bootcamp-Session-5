@@ -9,7 +9,11 @@ let nextId = 1;
 // Load seed data on startup
 function loadSeedData() {
   seedTodos.forEach((todo) => {
-    addTodo({ ...todo, createdAt: new Date().toISOString() });
+    addTodo({ 
+      ...todo, 
+      createdAt: todo.createdAt || new Date().toISOString(), 
+      dueDate: todo.dueDate || null 
+    });
   });
 }
 

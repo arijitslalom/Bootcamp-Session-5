@@ -35,6 +35,8 @@ function TodoList({
   setEditingPriority,
   editingTags,
   setEditingTags,
+  editingDueDate,
+  setEditingDueDate,
   onToggle,
   onDelete,
   onStartEdit,
@@ -136,6 +138,8 @@ function TodoList({
                 setEditingPriority={setEditingPriority}
                 editingTags={editingTags}
                 setEditingTags={setEditingTags}
+                editingDueDate={editingDueDate}
+                setEditingDueDate={setEditingDueDate}
                 allTags={allTags}
                 onToggle={onToggle}
                 onDelete={onDelete}

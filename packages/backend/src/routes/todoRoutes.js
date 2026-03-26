@@ -1,5 +1,5 @@
 const express = require('express');
-const { validatePriority, validateTags, normalizeTags } = require('../validators');
+const { validatePriority, validateTags, normalizeTags, validateDueDate } = require('../validators');
 const { getTodos, addTodo, findTodoById, findTodoIndexById, removeTodoByIndex } = require('../todoStore');
 
 const router = express.Router();
@@ -34,12 +34,28 @@ router.get('/', (req, res) => {
     );
   }
 
+  // Filter by dueBefore if query param provided
+  if (req.query.dueBefore) {
+    const beforeDate = new Date(req.query.dueBefore);
+    filteredTodos = filteredTodos.filter(t => 
+      t.dueDate && new Date(t.dueDate) < beforeDate
+    );
+  }
+
+  // Filter by dueAfter if query param provided
+  if (req.query.dueAfter) {
+    const afterDate = new Date(req.query.dueAfter);
+    filteredTodos = filteredTodos.filter(t => 
+      t.dueDate && new Date(t.dueDate) > afterDate
+    );
+  }
+
   res.json(filteredTodos);
 });
 
 // POST /api/todos - Create a new todo
 router.post('/', (req, res) => {
-  const { title, priority, tags } = req.body;
+  const { title, priority, tags, dueDate } = req.body;
 
   // Validate title is provided and not empty
   if (!title || title.trim() === '') {
@@ -58,11 +74,18 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: tagsError });
   }
 
+  // Validate dueDate if provided
+  const dueDateError = validateDueDate(dueDate);
+  if (dueDateError) {
+    return res.status(400).json({ error: dueDateError });
+  }
+
   // Create new todo
   const newTodo = addTodo({
     title: title,
     priority: priority || 'medium',
     tags: normalizeTags(tags),
+    dueDate: dueDate || null,
     completed: false,
     createdAt: new Date().toISOString(),
   });
@@ -73,7 +96,7 @@ router.post('/', (req, res) => {
 // PUT /api/todos/:id - Update a todo
 router.put('/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { title, priority, tags } = req.body;
+  const { title, priority, tags, dueDate } = req.body;
 
   const todo = findTodoById(id);
 
@@ -102,6 +125,19 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: tagsError });
     }
     todo.tags = normalizeTags(tags);
+  }
+
+  // Update dueDate if provided
+  if (dueDate !== undefined) {
+    if (dueDate === null) {
+      todo.dueDate = null;
+    } else {
+      const dueDateError = validateDueDate(dueDate);
+      if (dueDateError) {
+        return res.status(400).json({ error: dueDateError });
+      }
+      todo.dueDate = dueDate;
+    }
   }
 
   res.json(todo);

@@ -23,6 +23,8 @@ function AddTodoForm({
   setNewTodoPriority,
   newTodoTags,
   setNewTodoTags,
+  newTodoDueDate,
+  setNewTodoDueDate,
   allTags,
   onSubmit,
   isLoading,
@@ -105,6 +107,17 @@ function AddTodoForm({
                 />
               ))
             }
+          />
+          
+          {/* Due Date Input */}
+          <TextField
+            fullWidth
+            type="date"
+            label="Due Date"
+            value={newTodoDueDate}
+            onChange={(e) => setNewTodoDueDate(e.target.value)}
+            size="small"
+            InputLabelProps={{ shrink: true }}
           />
           
           {/* Add Task Button - Full Width, Primary */}

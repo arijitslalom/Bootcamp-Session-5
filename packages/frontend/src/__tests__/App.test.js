@@ -1895,6 +1895,322 @@ describe('Phase 2: Enhanced Task Input Section', () => {
   });
 });
 
+describe('Due Date Feature', () => {
+  test('displays due date input in add todo form', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Should have a due date input
+    const dueDateInput = screen.getByLabelText(/due date/i);
+    expect(dueDateInput).toBeInTheDocument();
+  });
+
+  test('creates todo with due date', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 1,
+            title: body.title,
+            priority: body.priority || 'medium',
+            tags: body.tags || [],
+            dueDate: body.dueDate || null,
+            completed: false,
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 1, title: 'Due Date Task', priority: 'medium', tags: [], dueDate: '2026-04-15', completed: false }
+        ]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Enter title
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Due Date Task');
+
+    // Set due date
+    const dueDateInput = screen.getByLabelText(/due date/i);
+    await user.type(dueDateInput, '2026-04-15');
+
+    // Submit form
+    const addButton = screen.getByRole('button', { name: /add task/i });
+    await user.click(addButton);
+
+    // Verify POST was called with dueDate
+    await waitFor(() => {
+      const postCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'POST'
+      );
+      expect(postCalls.length).toBeGreaterThan(0);
+
+      const postBody = JSON.parse(postCalls[0][1].body);
+      expect(postBody.dueDate).toBe('2026-04-15');
+    });
+  });
+
+  test('creates todo without due date (defaults to null)', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 1,
+            title: body.title,
+            dueDate: body.dueDate || null,
+            completed: false,
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'No Due Date Task');
+
+    const addButton = screen.getByRole('button', { name: /add task/i });
+    await user.click(addButton);
+
+    await waitFor(() => {
+      const postCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'POST'
+      );
+      expect(postCalls.length).toBeGreaterThan(0);
+
+      const postBody = JSON.parse(postCalls[0][1].body);
+      expect(postBody.dueDate).toBeFalsy();
+    });
+  });
+
+  test('displays due date on todo items', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task with date', priority: 'medium', tags: [], dueDate: '2026-04-15', completed: false, createdAt: '2026-03-26T00:00:00.000Z' },
+      { id: 2, title: 'Task no date', priority: 'low', tags: [], dueDate: null, completed: false, createdAt: '2026-03-26T00:00:00.000Z' },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Task with date');
+
+    // Should display formatted due date for the task that has one
+    expect(screen.getByText(/Due.*Apr.*15/i)).toBeInTheDocument();
+  });
+
+  test('shows overdue indicator for past due dates on active todos', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Overdue Task', priority: 'high', tags: [], dueDate: '2026-03-01', completed: false, createdAt: '2026-02-15T00:00:00.000Z' },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Overdue Task');
+
+    // Should show overdue text
+    const overdueElements = screen.getAllByText(/overdue/i);
+    expect(overdueElements.length).toBeGreaterThan(0);
+  });
+
+  test('shows due date input in edit mode', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Edit Date Task', priority: 'medium', tags: [], dueDate: '2026-04-15', completed: false, createdAt: '2026-03-26T00:00:00.000Z' },
+    ];
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos),
+        });
+      }
+
+      if (options.method === 'PUT') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 1,
+            title: body.title || 'Edit Date Task',
+            priority: body.priority || 'medium',
+            tags: body.tags || [],
+            dueDate: body.dueDate,
+            completed: false,
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Edit Date Task');
+
+    // Click edit
+    const editButton = screen.getByRole('button', { name: /edit task/i });
+    await user.click(editButton);
+
+    // Should show due date input in edit mode
+    const dueDateInputs = screen.getAllByLabelText(/due date/i);
+    expect(dueDateInputs.length).toBeGreaterThanOrEqual(2); // one in add form, one in edit form
+  });
+
+  test('resets due date field after successful submission', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      if (options.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: 1, title: 'Test', completed: false }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Test');
+
+    const dueDateInput = screen.getByLabelText(/due date/i);
+    await user.type(dueDateInput, '2026-04-15');
+
+    const addButton = screen.getByRole('button', { name: /add task/i });
+    await user.click(addButton);
+
+    // Due date should reset after submission
+    await waitFor(() => {
+      expect(dueDateInput).toHaveValue('');
+    });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

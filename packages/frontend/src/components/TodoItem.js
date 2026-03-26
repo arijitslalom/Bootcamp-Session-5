@@ -21,7 +21,7 @@ import {
   Close as CloseIcon,
   Event as EventIcon,
 } from '@mui/icons-material';
-import { getPriorityColor } from '../utils/helpers';
+import { getPriorityColor, getDueDateStatus, formatDueDate, getDueDateColor } from '../utils/helpers';
 
 function TodoItem({
   todo,
@@ -32,6 +32,8 @@ function TodoItem({
   setEditingPriority,
   editingTags,
   setEditingTags,
+  editingDueDate,
+  setEditingDueDate,
   allTags,
   onToggle,
   onDelete,
@@ -40,6 +42,7 @@ function TodoItem({
   onCancelEdit,
   onTagClick,
 }) {
+  const dueDateStatus = getDueDateStatus(todo.dueDate, todo.completed);
   return (
     <ListItem
       sx={{
@@ -144,6 +147,15 @@ function TodoItem({
                 />
               )}
             />
+            <TextField
+              type="date"
+              label="Due Date"
+              value={editingDueDate}
+              onChange={(e) => setEditingDueDate(e.target.value)}
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              sx={{ maxWidth: 200 }}
+            />
           </Box>
           <Stack direction="row" spacing={1}>
             <IconButton
@@ -212,6 +224,16 @@ function TodoItem({
                   label={todo.priority.toUpperCase()} 
                   size="small"
                   color={getPriorityColor(todo.priority)}
+                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }}
+                />
+              )}
+              
+              {todo.dueDate && (
+                <Chip
+                  label={dueDateStatus === 'overdue' ? `Overdue · ${formatDueDate(todo.dueDate)}` : `Due ${formatDueDate(todo.dueDate)}`}
+                  size="small"
+                  color={getDueDateColor(dueDateStatus)}
+                  variant={dueDateStatus === 'overdue' ? 'filled' : 'outlined'}
                   sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }}
                 />
               )}

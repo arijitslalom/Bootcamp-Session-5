@@ -45,10 +45,26 @@ function normalizeTags(tags) {
   return tags.map(tag => tag.trim());
 }
 
+// Helper function to validate due date
+function validateDueDate(dueDate) {
+  if (dueDate === undefined || dueDate === null) {
+    return null; // Valid (no date or clearing date)
+  }
+  if (typeof dueDate !== 'string') {
+    return 'Invalid due date';
+  }
+  const date = new Date(dueDate);
+  if (isNaN(date.getTime())) {
+    return 'Invalid due date';
+  }
+  return null; // Valid
+}
+
 module.exports = {
   VALID_PRIORITIES,
   isValidPriority,
   validatePriority,
   validateTags,
   normalizeTags,
+  validateDueDate,
 };
