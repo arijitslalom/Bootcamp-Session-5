@@ -25,6 +25,8 @@ function AddTodoForm({
   setNewTodoTags,
   newTodoDueDate,
   setNewTodoDueDate,
+  newTodoDescription,
+  setNewTodoDescription,
   allTags,
   onSubmit,
   isLoading,
@@ -114,6 +116,18 @@ function AddTodoForm({
             onChange={(e) => setNewTodoDueDate(e.target.value)}
             size="small"
             InputLabelProps={{ shrink: true }}
+          />
+          
+          {/* Description/Notes Input */}
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            value={newTodoDescription}
+            onChange={(e) => setNewTodoDescription(e.target.value)}
+            placeholder="Add notes or details..."
+            variant="outlined"
+            size="small"
           />
           
           {/* Add Task Button - Full Width, Primary */}

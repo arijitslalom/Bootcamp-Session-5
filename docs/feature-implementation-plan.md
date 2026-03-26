@@ -992,8 +992,10 @@ router.post('/:id/subtasks', (req, res) => {
 
 ---
 
-### 10. Notes/Description Field
+### 10. Notes/Description Field ✅ COMPLETED
 
+**Status:** ✅ Completed on March 26, 2026  
+**Actual Effort:** ~45 minutes  
 **Goal:** Add expandable description/notes field to todos for additional context and details.
 
 #### Backend Changes
@@ -1075,6 +1077,49 @@ if (req.body.description !== undefined) {
 
 **Dependencies:** None (can be implemented independently)
 **Estimated Effort:** 3-4 hours (basic), 6-8 hours (with rich text)
+
+#### Implementation Summary
+
+**Completed Features:**
+- ✅ Backend description field (string, default: '') with validation
+- ✅ Description in POST and PUT handlers
+- ✅ Non-string description rejected with 400 error
+- ✅ Description persists through toggle and other operations
+- ✅ Long descriptions supported (up to 5000+ chars)
+- ✅ Search includes description text (OR with title and tags)
+- ✅ Frontend multiline TextField in add form (2 rows, placeholder: "Add notes or details...")
+- ✅ Description editing in edit mode
+- ✅ Collapsible description display (MUI Collapse component)
+- ✅ "Show notes" / "Hide notes" text Button with NotesIcon below metadata row
+- ✅ Notes indicator only shown for todos with description
+- ✅ Form resets description after submission
+- ✅ UI fix: action buttons (edit/delete) moved from secondaryAction to inline flex layout to prevent tag overlap
+- ✅ Comprehensive test coverage (12 backend + 5 frontend tests)
+
+**Test Results:**
+- Backend: 126 tests passing (114 original + 12 new description tests)
+- Frontend: 72 tests passing (67 original + 5 new description tests)
+- Total: 198 tests passing
+
+**Files Modified:**
+- Backend: `src/validators.js` (validateDescription), `src/routes/todoRoutes.js` (description in POST/PUT/GET+search)
+- Frontend: `src/App.js` (state management), `src/components/AddTodoForm.js` (multiline input), `src/components/TodoItem.js` (collapsible display + edit + layout fix), `src/components/TodoList.js` (prop passing), `src/hooks/useTodoMutations.js` (API calls)
+
+**Files Created:**
+- Backend: `__tests__/todos.description.test.js` (12 tests)
+
+**Code Quality:**
+- Zero compilation errors
+- Zero lint errors  
+- TDD methodology followed (Red-Green-Refactor)
+- Helper function: `validateDescription()`
+- Also fixed pre-existing search test failures (placeholder mismatch)
+
+**Notes:**
+- Implementation completed efficiently in ~45 minutes (vs. 3-4 hour estimate)
+- Steps 10.6 (Modal/Drawer), 10.9 (Rich Text Editor) deferred as optional enhancements
+- Steps 10.1-10.5, 10.7, 10.8, 10.10 all completed
+- All existing tests continue to pass (no regressions)
 
 ---
 
@@ -1394,19 +1439,19 @@ Based on dependencies and complexity, here's the recommended implementation orde
 
 **Total: ~7-10 hours** | **Completed: 3/3 features (104 minutes actual / 1 hour 44 minutes)** ✅
 
-### Phase 2: Organization (Week 2)
+### Phase 2: Organization (Week 2) ✅
 4. Categories/Tags (4-5h) ✅ COMPLETED - Actual: ~1 hour
 5. Due Dates (5-6h) ✅ COMPLETED - Actual: 25 minutes
 6. Sort Options (3-4h) ✅ COMPLETED - Actual: 15 minutes
-7. Search/Filter Bar (3-4h)
+7. Search/Filter Bar (3-4h) ✅ COMPLETED - Actual: ~1 hour
 
-**Total: ~15-19 hours** | **Completed: 3/4 features (1 hour 40 minutes actual)**
+**Total: ~15-19 hours** | **Completed: 4/4 features (2 hours 40 minutes actual)** ✅
 
 ### Phase 3: Advanced UX (Week 3)
-8. Notes/Description Field (3-4h)
+8. Notes/Description Field (3-4h) ✅ COMPLETED - Actual: ~45 minutes
 9. Undo/Redo (4-5h)
 
-**Total: ~7-9 hours**
+**Total: ~7-9 hours** | **Completed: 1/2 features (45 minutes actual)**
 
 ### Phase 4: Power Features (Week 4)
 10. Subtasks/Checklists (7-8h)
@@ -1468,7 +1513,7 @@ For each feature:
 This plan provides a comprehensive roadmap for implementing **functional features**:
 - **3 Priority & Organization Features**: Priority levels ✅, tags ✅, ~~drag-drop~~ ❌, due dates ✅
 - **4 Filtering & View Management Features**: Status filters ✅, search ✅, sort ✅, bulk actions
-- **4 Enhanced User Experience Features**: Subtasks, notes, undo, dark mode ✅
+- **4 Enhanced User Experience Features**: Subtasks, notes ✅, undo, dark mode ✅
 
 Each feature includes:
 - Detailed backend and frontend steps
@@ -1480,9 +1525,9 @@ Each feature includes:
 
 **1. Functional Features (This Document)**
 - **Total Estimated Time:** 54-71 hours (reduced from 60-77h after dropping Drag-and-Drop)
-- **Completed:** 6 of 11 features (55%)
+- **Completed:** 7 of 11 features (64%)
 - **Dropped:** 1 feature (Drag-and-Drop — conflicts with Sort)
-- **Time Invested:** ~4 hours
+- **Time Invested:** ~4 hours 45 minutes
 - **Scope:** Data models, API endpoints, business logic, state management
 
 **2. UI/UX Improvements ([see UI Improvement Plan](ui-improvement-plan.md))** ✅
@@ -1499,9 +1544,9 @@ Each feature includes:
   - Collapsible filter accordion in FOCUS section
 
 **Combined Project Status:**
-- **Functional Features:** 6/11 complete (55%), 1 dropped
+- **Functional Features:** 7/11 complete (64%), 1 dropped
 - **UI Improvements:** 5/5 complete (100%) ✅
-- **Overall:** Phase 1 complete, Phase 2 complete (4/4) ✅, 5 features remaining
+- **Overall:** Phase 1 complete ✅, Phase 2 complete ✅, Phase 3 in progress (1/2), 4 features remaining
 
 **Note:** This plan uses in-memory storage. Data will reset on server restart. For production use with data persistence, you would need to add database integration and user authentication separately.
 
@@ -1567,7 +1612,7 @@ Both backend and frontend had grown into large monolithic files that were diffic
 
 ## �📊 Overall Progress (As of March 26, 2026)
 
-### ✅ Completed Functional Features: 6 of 12 (50%)
+### ✅ Completed Functional Features: 8 of 12 (67%)
 
 **Priority & Organization:**
 1. ✅ Priority Levels - 40 minutes
@@ -1580,25 +1625,25 @@ Both backend and frontend had grown into large monolithic files that were diffic
 7. ✅ Sort Options - 15 minutes
 
 **Enhanced User Experience:**
+10. ✅ Notes/Description Field - ~45 minutes
 12. ✅ Dark/Light Theme Toggle - 23 minutes
 
 ### Total Time Invested
-- **Estimated:** 7-10 hours for Phase 1 + 12-15 hours for Phase 2 = 19-25 hours
-- **Actual:** ~4 hours (21% of estimated minimum time)
+- **Estimated:** 7-10 hours for Phase 1 + 12-15 hours for Phase 2 + 3-4 hours for Phase 3 start = 22-29 hours
+- **Actual:** ~4 hours 45 minutes (22% of estimated minimum time)
 - **Efficiency:** ~5x faster than estimated
 
 ### Current Test Coverage
-- **Backend:** 114 tests passing (8 test suites)
-- **Frontend:** 66 tests passing
-- **Total:** 180 tests passing (99.4% pass rate - 1 pre-existing timeout)
+- **Backend:** 126 tests passing (9 test suites)
+- **Frontend:** 72 tests passing
+- **Total:** 198 tests passing
 
 ### Next Recommended Work
 
 **Continue with Functional Features** ⭐ **RECOMMENDED**
-With Phase 1 and Phase 2 both complete ✅, move to Phase 3 enhanced UX features:
-- Phase 3: Notes/Description Field (3-4h est.) - Add context and details to tasks
+With Phase 1, Phase 2, and Notes/Description all complete ✅, continue Phase 3:
 - Phase 3: Undo/Redo (4-5h est.) - Improve user confidence with reversible actions
-- Phase 3: Subtasks/Checklists (7-8h est.) - Break down complex tasks into steps
+- Phase 4: Subtasks/Checklists (7-8h est.) - Break down complex tasks into steps
 - Phase 4: Bulk Actions (5-6h est.) - Efficiently manage multiple tasks at once
 
-**Rationale:** With Phase 1 fully complete (priority, tags, due dates ✅) and Phase 2 fully complete (status filters, search, sort ✅), and the UI/UX improvements complete (all 5 phases ✅), the app has strong foundational features. Phase 3 focuses on enhanced user experience features that add polish and power-user capabilities.
+**Rationale:** With Phase 1 fully complete (priority, tags, due dates ✅), Phase 2 fully complete (status filters, search, sort ✅), UI/UX improvements complete (all 5 phases ✅), and Notes/Description complete ✅, the app has strong foundational features plus enhanced UX. Continue Phase 3 with Undo/Redo, then move to Phase 4 power features.

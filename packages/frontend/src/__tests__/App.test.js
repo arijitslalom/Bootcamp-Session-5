@@ -2429,7 +2429,7 @@ describe('Search Feature', () => {
 
     await screen.findByText(/To Do App/i);
 
-    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
     expect(searchInput).toBeInTheDocument();
   });
 
@@ -2463,7 +2463,7 @@ describe('Search Feature', () => {
 
     await screen.findByText('Buy groceries');
 
-    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
     await user.type(searchInput, 'buy');
 
     // Verify search param is sent to API (with debounce)
@@ -2497,7 +2497,7 @@ describe('Search Feature', () => {
 
     await screen.findByText('Buy groceries');
 
-    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
     await user.type(searchInput, 'buy');
 
     // Wait for clear button to appear
@@ -2549,7 +2549,7 @@ describe('Search Feature', () => {
     await user.click(activeButton);
 
     // Type search
-    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
     await user.type(searchInput, 'buy');
 
     // Verify both params sent
@@ -2590,7 +2590,7 @@ describe('Search Feature', () => {
 
     await screen.findByText('Buy groceries');
 
-    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
     await user.type(searchInput, 'xyz');
 
     // Wait for empty state (debounced search triggers re-fetch)
@@ -2599,6 +2599,255 @@ describe('Search Feature', () => {
       const emptyState = screen.queryByText(/no tasks/i) || screen.queryByText(/no results/i);
       expect(emptyState).toBeInTheDocument();
     }, { timeout: 3000 });
+  });
+});
+
+describe('Description/Notes Feature', () => {
+  test('displays description input field in add todo form', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    // Should have a description input in the form
+    const descInput = screen.getByPlaceholderText(/add notes or details/i);
+    expect(descInput).toBeInTheDocument();
+  });
+
+  test('creates todo with description', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 1,
+            title: body.title,
+            description: body.description || '',
+            priority: 'medium',
+            tags: [],
+            completed: false,
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 1, title: 'Task with Notes', description: 'My detailed notes', priority: 'medium', tags: [], completed: false },
+        ]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Task with Notes');
+
+    const descInput = screen.getByPlaceholderText(/add notes or details/i);
+    await user.type(descInput, 'My detailed notes');
+
+    const addButton = screen.getByRole('button', { name: /add task/i });
+    await user.click(addButton);
+
+    await waitFor(() => {
+      const postCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'POST'
+      );
+      expect(postCalls.length).toBeGreaterThan(0);
+    });
+
+    const postCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'POST'
+    );
+    const postBody = JSON.parse(postCalls[0][1].body);
+    expect(postBody.description).toBe('My detailed notes');
+  });
+
+  test('displays description text on todo items after expanding', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Task One', description: 'Some notes about this task', priority: 'medium', tags: [], completed: false },
+      { id: 2, title: 'Task Two', description: '', priority: 'medium', tags: [], completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Task One');
+
+    // Description should NOT be visible initially (collapsed)
+    expect(screen.queryByText('Some notes about this task')).not.toBeVisible();
+
+    // Should show a "Show notes" indicator for the todo with description
+    const showNotesChip = screen.getByLabelText(/show notes/i);
+    expect(showNotesChip).toBeInTheDocument();
+
+    // Click to expand
+    await user.click(showNotesChip);
+
+    // Description should now be visible
+    await waitFor(() => {
+      expect(screen.getByText('Some notes about this task')).toBeVisible();
+    });
+  });
+
+  test('shows description field in edit mode', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Test Todo', description: 'Original notes', priority: 'medium', tags: [], completed: false },
+    ];
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTodos),
+        });
+      }
+      if (options.method === 'PUT') {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], ...body }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Test Todo');
+
+    const editButton = screen.getByRole('button', { name: /edit task/i });
+    await user.click(editButton);
+
+    // Edit mode should show the description field with existing value
+    const descInput = screen.getByDisplayValue('Original notes');
+    expect(descInput).toBeInTheDocument();
+
+    // Update description
+    await user.clear(descInput);
+    await user.type(descInput, 'Updated notes');
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      const putCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'PUT'
+      );
+      expect(putCalls.length).toBeGreaterThan(0);
+    });
+
+    const putCalls = global.fetch.mock.calls.filter(
+      call => call[1]?.method === 'PUT'
+    );
+    const putBody = JSON.parse(putCalls[0][1].body);
+    expect(putBody.description).toBe('Updated notes');
+  });
+
+  test('resets description field after adding todo', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    let callCount = 0;
+    global.fetch.mockImplementation((url, options = {}) => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      if (options.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: 1, title: 'Task', description: 'Notes', priority: 'medium', tags: [], completed: false }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([{ id: 1, title: 'Task', description: 'Notes', priority: 'medium', tags: [], completed: false }]),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    const titleInput = screen.getByPlaceholderText(/what needs to be done/i);
+    await user.type(titleInput, 'Task');
+
+    const descInput = screen.getByPlaceholderText(/add notes or details/i);
+    await user.type(descInput, 'Notes');
+
+    const addButton = screen.getByRole('button', { name: /add task/i });
+    await user.click(addButton);
+
+    // After submission, description should be reset
+    await waitFor(() => {
+      const descField = screen.getByPlaceholderText(/add notes or details/i);
+      expect(descField.value).toBe('');
+    });
   });
 });
 

@@ -5,11 +5,11 @@ export const useTodoMutations = ({ onAddSuccess }) => {
   const queryClient = useQueryClient();
 
   const addTodoMutation = useMutation({
-    mutationFn: async ({ title, priority, tags, dueDate }) => {
+    mutationFn: async ({ title, priority, tags, dueDate, description }) => {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, priority, tags, dueDate }),
+        body: JSON.stringify({ title, priority, tags, dueDate, description }),
       });
       return response.json();
     },
@@ -40,12 +40,13 @@ export const useTodoMutations = ({ onAddSuccess }) => {
   });
 
   const editTodoMutation = useMutation({
-    mutationFn: async ({ id, title, priority, tags, dueDate }) => {
+    mutationFn: async ({ id, title, priority, tags, dueDate, description }) => {
       const updateData = {};
       if (title !== undefined) updateData.title = title;
       if (priority !== undefined) updateData.priority = priority;
       if (tags !== undefined) updateData.tags = tags;
       if (dueDate !== undefined) updateData.dueDate = dueDate;
+      if (description !== undefined) updateData.description = description;
       
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',

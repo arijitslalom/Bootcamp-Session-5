@@ -19,11 +19,13 @@ function App() {
   const [newTodoPriority, setNewTodoPriority] = useState('medium');
   const [newTodoTags, setNewTodoTags] = useState([]);
   const [newTodoDueDate, setNewTodoDueDate] = useState('');
+  const [newTodoDescription, setNewTodoDescription] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [editingPriority, setEditingPriority] = useState('medium');
   const [editingTags, setEditingTags] = useState([]);
   const [editingDueDate, setEditingDueDate] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -54,6 +56,7 @@ function App() {
       setNewTodoPriority('medium');
       setNewTodoTags([]);
       setNewTodoDueDate('');
+      setNewTodoDescription('');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     },
@@ -67,6 +70,7 @@ function App() {
         priority: newTodoPriority,
         tags: newTodoTags,
         dueDate: newTodoDueDate || null,
+        description: newTodoDescription,
       });
     }
   };
@@ -91,6 +95,7 @@ function App() {
     setEditingPriority(todo.priority || 'medium');
     setEditingTags(todo.tags || []);
     setEditingDueDate(todo.dueDate || '');
+    setEditingDescription(todo.description || '');
   };
 
   const handleSaveEdit = () => {
@@ -101,12 +106,14 @@ function App() {
         priority: editingPriority,
         tags: editingTags,
         dueDate: editingDueDate || null,
+        description: editingDescription,
       });
       setEditingId(null);
       setEditingTitle('');
       setEditingPriority('medium');
       setEditingTags([]);
       setEditingDueDate('');
+      setEditingDescription('');
     }
   };
 
@@ -116,6 +123,7 @@ function App() {
     setEditingPriority('medium');
     setEditingTags([]);
     setEditingDueDate('');
+    setEditingDescription('');
   };
 
   // Get all unique tags from ALL todos (unfiltered) - memoized for performance
@@ -158,6 +166,8 @@ function App() {
               setNewTodoTags={setNewTodoTags}
               newTodoDueDate={newTodoDueDate}
               setNewTodoDueDate={setNewTodoDueDate}
+              newTodoDescription={newTodoDescription}
+              setNewTodoDescription={setNewTodoDescription}
               allTags={allTags}
               onSubmit={handleAddTodo}
               isLoading={addTodoMutation.isPending}
@@ -192,6 +202,8 @@ function App() {
               setEditingTags={setEditingTags}
               editingDueDate={editingDueDate}
               setEditingDueDate={setEditingDueDate}
+              editingDescription={editingDescription}
+              setEditingDescription={setEditingDescription}
               onToggle={handleToggleTodo}
               onDelete={handleDeleteTodo}
               onStartEdit={handleStartEdit}

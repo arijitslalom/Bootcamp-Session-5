@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -13,6 +13,8 @@ import {
   FormControl,
   InputLabel,
   Autocomplete,
+  Collapse,
+  Button,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -20,6 +22,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon,
   Event as EventIcon,
+  Notes as NotesIcon,
 } from '@mui/icons-material';
 import { getPriorityColor, getDueDateStatus, formatDueDate, getDueDateColor } from '../utils/helpers';
 
@@ -34,6 +37,8 @@ function TodoItem({
   setEditingTags,
   editingDueDate,
   setEditingDueDate,
+  editingDescription,
+  setEditingDescription,
   allTags,
   onToggle,
   onDelete,
@@ -43,6 +48,7 @@ function TodoItem({
   onTagClick,
 }) {
   const dueDateStatus = getDueDateStatus(todo.dueDate, todo.completed);
+  const [showDescription, setShowDescription] = useState(false);
   return (
     <ListItem
       sx={{
@@ -59,29 +65,6 @@ function TodoItem({
           transform: 'translateY(-2px)'
         },
       }}
-      secondaryAction={
-        editingId !== todo.id && (
-          <Stack direction="row" spacing={1}>
-            <IconButton 
-              edge="end" 
-              size="small" 
-              onClick={() => onStartEdit(todo)}
-              aria-label={`Edit task: ${todo.title}`}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton 
-              edge="end" 
-              size="small" 
-              color="error"
-              onClick={() => onDelete(todo.id)}
-              aria-label={`Delete task: ${todo.title}`}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-        )
-      }
     >
       {editingId === todo.id ? (
         // Edit mode
@@ -155,6 +138,15 @@ function TodoItem({
               size="small"
               InputLabelProps={{ shrink: true }}
               sx={{ maxWidth: 200 }}
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              value={editingDescription}
+              onChange={(e) => setEditingDescription(e.target.value)}
+              placeholder="Add notes or details..."
+              size="small"
             />
           </Box>
           <Stack direction="row" spacing={1}>
@@ -254,7 +246,58 @@ function TodoItem({
                 />
               ))}
             </Stack>
+            
+            {todo.description && (
+              <>
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<NotesIcon sx={{ fontSize: 16 }} />}
+                  onClick={() => setShowDescription(prev => !prev)}
+                  aria-label={showDescription ? 'Hide notes' : 'Show notes'}
+                  sx={{ 
+                    mt: 0.5,
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'primary.main',
+                    p: 0,
+                    minWidth: 0,
+                    '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                  }}
+                >
+                  {showDescription ? 'Hide notes' : 'Show notes'}
+                </Button>
+                <Collapse in={showDescription}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                  >
+                    {todo.description}
+                  </Typography>
+                </Collapse>
+              </>
+            )}
           </Box>
+          
+          <Stack direction="row" spacing={0.5} sx={{ alignSelf: 'flex-start', flexShrink: 0 }}>
+            <IconButton 
+              size="small" 
+              onClick={() => onStartEdit(todo)}
+              aria-label={`Edit task: ${todo.title}`}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton 
+              size="small" 
+              color="error"
+              onClick={() => onDelete(todo.id)}
+              aria-label={`Delete task: ${todo.title}`}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </>
       )}
     </ListItem>

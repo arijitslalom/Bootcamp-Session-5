@@ -60,6 +60,17 @@ function validateDueDate(dueDate) {
   return null; // Valid
 }
 
+// Helper function to validate description
+function validateDescription(description) {
+  if (description === undefined || description === null) {
+    return null; // Valid (no description)
+  }
+  if (typeof description !== 'string') {
+    return 'Description must be a string';
+  }
+  return null; // Valid
+}
+
 module.exports = {
   VALID_PRIORITIES,
   isValidPriority,
@@ -67,4 +78,5 @@ module.exports = {
   validateTags,
   normalizeTags,
   validateDueDate,
+  validateDescription,
 };
