@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../src/app');
 const { resetStore } = require('../src/todoStore');
 
-describe('TODO API Tests', () => {
+describe('TODO CRUD Tests', () => {
   beforeEach(() => {
     resetStore();
   });
@@ -63,14 +63,12 @@ describe('TODO API Tests', () => {
 
   describe('PUT /api/todos/:id', () => {
     test('should update todo title', async () => {
-      // First create a todo
       const createResponse = await request(app)
         .post('/api/todos')
         .send({ title: 'Original Title' });
 
       const todoId = createResponse.body.id;
 
-      // Then update it
       const updateResponse = await request(app)
         .put(`/api/todos/${todoId}`)
         .send({ title: 'Updated Title' });
@@ -89,7 +87,6 @@ describe('TODO API Tests', () => {
     });
 
     test('should not change completed status', async () => {
-      // Create and toggle a todo
       const createResponse = await request(app)
         .post('/api/todos')
         .send({ title: 'Test Todo' });
@@ -98,7 +95,6 @@ describe('TODO API Tests', () => {
 
       await request(app).patch(`/api/todos/${todoId}/toggle`);
 
-      // Update title
       const updateResponse = await request(app)
         .put(`/api/todos/${todoId}`)
         .send({ title: 'New Title' });
@@ -109,14 +105,12 @@ describe('TODO API Tests', () => {
 
   describe('PATCH /api/todos/:id/toggle', () => {
     test('should toggle todo from incomplete to complete', async () => {
-      // Create a todo
       const createResponse = await request(app)
         .post('/api/todos')
         .send({ title: 'Test Todo' });
 
       const todoId = createResponse.body.id;
 
-      // Toggle it
       const toggleResponse = await request(app).patch(
         `/api/todos/${todoId}/toggle`
       );
@@ -126,17 +120,14 @@ describe('TODO API Tests', () => {
     });
 
     test('should toggle todo from complete to incomplete', async () => {
-      // Create and complete a todo
       const createResponse = await request(app)
         .post('/api/todos')
         .send({ title: 'Test Todo' });
 
       const todoId = createResponse.body.id;
 
-      // Toggle to complete
       await request(app).patch(`/api/todos/${todoId}/toggle`);
 
-      // Toggle back to incomplete
       const toggleResponse = await request(app).patch(
         `/api/todos/${todoId}/toggle`
       );
@@ -154,19 +145,16 @@ describe('TODO API Tests', () => {
 
   describe('DELETE /api/todos/:id', () => {
     test('should delete a todo', async () => {
-      // Create a todo
       const createResponse = await request(app)
         .post('/api/todos')
         .send({ title: 'Test Todo' });
 
       const todoId = createResponse.body.id;
 
-      // Delete it
       const deleteResponse = await request(app).delete(`/api/todos/${todoId}`);
 
       expect(deleteResponse.status).toBe(200);
 
-      // Verify it's gone
       const getResponse = await request(app).get('/api/todos');
       const todoExists = getResponse.body.some((t) => t.id === todoId);
       expect(todoExists).toBe(false);
@@ -181,40 +169,29 @@ describe('TODO API Tests', () => {
 
   describe('Integration Tests', () => {
     test('should handle full CRUD lifecycle', async () => {
-      // Create
       const createRes = await request(app)
         .post('/api/todos')
         .send({ title: 'Lifecycle Test' });
       const todoId = createRes.body.id;
       expect(createRes.status).toBe(201);
 
-      // Read
       const getRes = await request(app).get('/api/todos');
       expect(getRes.body.some((t) => t.id === todoId)).toBe(true);
 
-      // Update
       const updateRes = await request(app)
         .put(`/api/todos/${todoId}`)
         .send({ title: 'Updated Lifecycle' });
       expect(updateRes.status).toBe(200);
       expect(updateRes.body.title).toBe('Updated Lifecycle');
 
-      // Toggle
       const toggleRes = await request(app).patch(`/api/todos/${todoId}/toggle`);
       expect(toggleRes.body.completed).toBe(true);
 
-      // Delete
       const deleteRes = await request(app).delete(`/api/todos/${todoId}`);
       expect(deleteRes.status).toBe(200);
 
-      // Verify deletion
       const finalGetRes = await request(app).get('/api/todos');
       expect(finalGetRes.body.some((t) => t.id === todoId)).toBe(false);
     });
   });
 });
-
-// Priority, Tags, and Status Filter tests have been moved to:
-// - todos.priority.test.js
-// - todos.tags.test.js
-// - todos.filters.test.js

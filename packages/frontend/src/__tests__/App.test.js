@@ -84,7 +84,7 @@ test('deletes a todo when delete button is clicked', async () => {
   expect(screen.getByText('Test Todo 2')).toBeInTheDocument();
 
   // Find delete button by aria-label
-  const deleteButtons = screen.getAllByRole('button', { name: /delete todo/i });
+  const deleteButtons = screen.getAllByRole('button', { name: /delete task/i });
   await user.click(deleteButtons[0]);
 
   // Wait for the todo to be removed
@@ -117,7 +117,7 @@ test('displays correct stats for incomplete and completed todos', async () => {
     { id: 5, title: 'Todo 5', completed: true },
   ];
 
-  global.fetch.mockImplementationOnce(() =>
+  global.fetch.mockImplementation(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve(mockTodos),
@@ -134,17 +134,19 @@ test('displays correct stats for incomplete and completed todos', async () => {
   await screen.findByText('Todo 1');
 
   // Verify stats show correct counts
-  // 3 incomplete todos
-  expect(screen.getByText('3 items left')).toBeInTheDocument();
-  // 2 completed todos
-  expect(screen.getByText('2 completed')).toBeInTheDocument();
+  // Check REMAINING TASKS shows 3
+  const remainingRegion = screen.getByText(/REMAINING TASKS/i).closest('.MuiCardContent-root');
+  expect(remainingRegion).toHaveTextContent('3');
+  // Check TOTAL TASKS shows 5
+  const totalRegion = screen.getByText(/TOTAL TASKS/i).closest('.MuiCardContent-root');
+  expect(totalRegion).toHaveTextContent('5');
 });
 
 test('displays empty state message when there are no todos', async () => {
   const testQueryClient = createTestQueryClient();
 
   // Mock empty todos array
-  global.fetch.mockImplementationOnce(() =>
+  global.fetch.mockImplementation(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([]),
@@ -162,16 +164,16 @@ test('displays empty state message when there are no todos', async () => {
 
   // Verify empty state message is displayed
   await waitFor(() => {
-    expect(screen.getByText(/no todos yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();
   });
-  expect(screen.getByText(/get started by adding/i)).toBeInTheDocument();
+  expect(screen.getByText(/add your first task to get started/i)).toBeInTheDocument();
 });
 
 test('displays error message when API fails', async () => {
   const testQueryClient = createTestQueryClient();
 
   // Mock fetch to reject/fail
-  global.fetch.mockImplementationOnce(() =>
+  global.fetch.mockImplementation(() =>
     Promise.reject(new Error('Network error'))
   );
 
@@ -237,7 +239,7 @@ test('edits a todo when edit button is clicked and saved', async () => {
   await screen.findByText('Original Todo');
 
   // Click edit button
-  const editButton = screen.getByRole('button', { name: /edit todo/i });
+  const editButton = screen.getByRole('button', { name: /edit task/i });
   await user.click(editButton);
 
   // Find the input field (should be in edit mode now)
@@ -539,7 +541,7 @@ describe('Priority Feature', () => {
     await screen.findByText('Test Todo');
 
     // Click edit button
-    const editButton = screen.getByRole('button', { name: /edit todo/i });
+    const editButton = screen.getByRole('button', { name: /edit task/i });
     await user.click(editButton);
 
     // Should show priority selector in edit mode
@@ -576,6 +578,7 @@ describe('Priority Feature', () => {
   });
 
   test('shows all priority filter options', async () => {
+    const user = userEvent.setup();
     const testQueryClient = createTestQueryClient();
 
     global.fetch.mockImplementation(() =>
@@ -592,6 +595,10 @@ describe('Priority Feature', () => {
     );
 
     await screen.findByText(/To Do App/i);
+
+    // Expand the "More Filters" accordion to reveal priority buttons
+    const moreFilters = screen.getByText(/More Filters/i);
+    await user.click(moreFilters);
 
     // Should have filter buttons for all priorities
     const allButtons = screen.getAllByRole('button');
@@ -842,7 +849,7 @@ describe('Tags/Categories Feature', () => {
     await screen.findByText('Test Todo');
 
     // Click edit button
-    const editButton = screen.getByRole('button', { name: /edit todo/i });
+    const editButton = screen.getByRole('button', { name: /edit task/i });
     await user.click(editButton);
 
     // Should show tag input in edit mode
@@ -1403,9 +1410,17 @@ describe('Status Filter Feature', () => {
     const activeButton = screen.getByRole('button', { name: /^Active$/i });
     await user.click(activeButton);
 
+    // Expand "More Filters" accordion to reveal priority buttons
+    const moreFilters = screen.getByText(/More Filters/i);
+    await user.click(moreFilters);
+
     // Click High priority filter
-    const highButton = screen.getByRole('button', { name: /High/i });
-    await user.click(highButton);
+    const highButtons = screen.getAllByRole('button', { name: /High/i });
+    const highFilterButton = highButtons.find(btn =>
+      btn.classList.contains('MuiButton-outlinedError') ||
+      btn.classList.contains('MuiButton-containedError')
+    );
+    await user.click(highFilterButton);
 
     // Should only show Active High
     await waitFor(() => {
@@ -1729,15 +1744,15 @@ describe('Phase 2: Enhanced Task Input Section', () => {
     const testQueryClient = createTestQueryClient();
 
     // Mock a delayed response to catch loading state
+    let resolvePost;
     global.fetch.mockImplementation((url, options = {}) => {
       if (options.method === 'POST') {
         return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              ok: true,
-              json: () => Promise.resolve({ id: 1, title: 'New Task', completed: false }),
-            });
-          }, 100);
+          resolvePost = () => resolve({
+            ok: true,
+            json: () => Promise.resolve({ id: 1, title: 'New Task', completed: false }),
+          });
+          // Don't resolve immediately - keep loading state visible
         });
       }
       return Promise.resolve({
@@ -1766,6 +1781,9 @@ describe('Phase 2: Enhanced Task Input Section', () => {
       const loadingText = screen.queryByText(/Adding.../i);
       expect(loadingText).toBeInTheDocument();
     });
+
+    // Resolve the pending POST request
+    if (resolvePost) resolvePost();
   });
 
   test('displays success notification after adding a task', async () => {

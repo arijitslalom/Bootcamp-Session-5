@@ -4,13 +4,22 @@
 This document provides a detailed implementation plan for new TODO app **functional features**, organized by category. Each feature follows the Test-Driven Development (TDD) workflow: Write tests → Implement → Validate → Refactor.
 
 **Related Documents:**
-- **[UI/UX Improvement Plan](ui-improvement-plan.md)** - Comprehensive plan for modernizing the visual design and user experience (two-column layout, enhanced components, responsive design, etc.)
+- **[UI/UX Improvement Plan](ui-improvement-plan.md)** - Comprehensive plan for modernizing the visual design and user experience (two-column layout, enhanced components, responsive design, etc.) ✅ **ALL 5 PHASES COMPLETED**
 
 **Scope Clarification:**
 - **This document:** Focuses on functional features (data model changes, API endpoints, business logic)
-- **UI Improvement Plan:** Focuses on presentation layer (layout, typography, spacing, visual design, accessibility)
+- **UI Improvement Plan:** Focuses on presentation layer (layout, typography, spacing, visual design, accessibility) ✅ **COMPLETE**
 
-Both plans work together: functional features provide the capabilities, while UI improvements enhance how users interact with them.
+**UI Context (As of March 25, 2026):**
+The app now features a modern two-column layout:
+- **CAPTURE (Left, 42%):** Task input form with priority selector, tags input, and action button
+- **FOCUS (Right, 58%):** Task list with filters, card-style items with hover effects, metadata rows
+- **Container Width:** `lg` (1280px max width for desktop optimization)
+- **Design System:** Purple theme (#667eea primary, #9c27b0 secondary), comprehensive typography, semantic HTML
+- **Components:** Card-style list items (borderRadius: 2, elevation changes on hover), collapsible "More Filters" accordion
+- **Accessibility:** ARIA labels, keyboard navigation (Enter/Escape), semantic sections
+
+Pending features should integrate with this established UI pattern.
 
 ---
 
@@ -265,28 +274,23 @@ app.get('/api/todos', (req, res) => {
 - Test invalid reorder requests are rejected
 
 **Step 3.3: Implement Backend**
-```javascript
-// In GET endpoint - sort by order
-app.get('/api/todos', (req, res) => {
-  let result = [...todos];
-  // Apply filters...
-  
-  // Sort by order field
-  result.sort((a, b) => a.order - b.order);
-  res.json(result);
-});
 
-// New reorder endpoint
-app.patch('/api/todos/reorder', (req, res) => {
+**Files to modify:**
+- `src/todoStore.js` - Add `order` field to `addTodo()`, add `updateTodoOrder()` helper
+- `src/routes/todoRoutes.js` - Add sort-by-order logic in GET handler, add PATCH `/reorder` route
+- `src/validators.js` - Add `validateReorderPayload()` if needed
+
+```javascript
+// In routes/todoRoutes.js - GET handler: sort by order
+result.sort((a, b) => a.order - b.order);
+
+// New reorder route in routes/todoRoutes.js
+router.patch('/reorder', (req, res) => {
   const { updates } = req.body; // [{ id: 1, order: 100 }, ...]
-  
   updates.forEach(update => {
-    const todo = todos.find(t => t.id === update.id);
-    if (todo) {
-      todo.order = update.order;
-    }
+    const todo = findTodoById(update.id);
+    if (todo) todo.order = update.order;
   });
-  
   res.json({ success: true });
 });
 ```
@@ -302,10 +306,12 @@ app.patch('/api/todos/reorder', (req, res) => {
 - Make each ListItem draggable with SortableContext
 - Add drag handle icon (DragIndicator from MUI icons)
 - Show visual feedback during drag (opacity, elevation)
+- **UI Integration Note:** Works with current card-style list items. Drag handle should appear on left side of card, before checkbox. Maintain hover effects and transitions during drag.
+- **Files to modify:** `components/TodoList.js` (add DndContext), `components/TodoItem.js` (add drag handle + sortable wrapper)
 
 **Step 3.6: Handle Reorder Logic**
 - Calculate new order values when item is dropped
-- Create mutation for reorder API call
+- Create mutation for reorder API call in `hooks/useTodoMutations.js`
 - Optimistically update UI, then sync with backend
 - Handle reorder failures gracefully
 
@@ -346,28 +352,25 @@ app.patch('/api/todos/reorder', (req, res) => {
 - Test filtering by date range (?dueBefore=2026-04-01, ?dueAfter=2026-03-01)
 
 **Step 4.3: Implement Backend**
+
+**Files to modify:**
+- `src/validators.js` - Add `isValidDate()`, `validateDueDate()` helpers
+- `src/todoStore.js` - Add `dueDate` field (default: null) in `addTodo()`
+- `src/routes/todoRoutes.js` - Add dueDate handling in POST/PUT, add date range filtering in GET
+
 ```javascript
-// Validation helper
+// In validators.js
 function isValidDate(dateString) {
   if (!dateString) return true; // null is valid
   const date = new Date(dateString);
   return date instanceof Date && !isNaN(date);
 }
 
-// In POST /api/todos
-const newTodo = {
-  id: nextId++,
-  title: title,
-  priority: req.body.priority || 'medium',
-  tags: req.body.tags || [],
-  dueDate: req.body.dueDate || null, // Add this
-  completed: false,
-  order: Date.now(),
-  createdAt: new Date().toISOString(),
-};
+// In todoStore.js addTodo() - add dueDate field
+dueDate: dueDate || null,
 
-// Validate date
-if (newTodo.dueDate && !isValidDate(newTodo.dueDate)) {
+// In routes/todoRoutes.js POST handler - validate date
+if (dueDate && !isValidDate(dueDate)) {
   return res.status(400).json({ error: 'Invalid due date' });
 }
 ```
@@ -384,20 +387,26 @@ if (newTodo.dueDate && !isValidDate(newTodo.dueDate)) {
 - Install `@mui/x-date-pickers` and `date-fns` (or dayjs)
 - Allow clearing due date
 - Default to no due date
+- **Files to modify:** `components/AddTodoForm.js` (add DatePicker to form), `components/TodoItem.js` (add DatePicker in edit mode)
 
 **Step 4.6: Display Due Date in Todo List**
-- Show due date below title with calendar icon
+- Show due date in metadata row below title (alongside existing priority badge and tags)
+- Use EventIcon (already in use for createdAt date)
+- **File to modify:** `components/TodoItem.js` - Add due date chip/text to metadata Stack
 - Color coding:
   - Overdue: Red (past due and not completed)
   - Due today: Orange
   - Due soon (next 3 days): Yellow
   - Future: Gray
 - Format: "Due Mar 28" or "Overdue by 2 days"
+- **UI Integration Note:** Add to existing metadata Stack with spacing={1}. Position after createdAt date, before priority chip.
 
 **Step 4.7: Add Due Date Filters**
 - Filter buttons: All, Overdue, Due Today, Due This Week, No Due Date
-- Quick filter chips above todo list
+- **UI Integration Note:** Add to "More Filters" accordion in FOCUS section (already houses priority and tag filters). Create new section within AccordionDetails after tag filter.
+- **File to modify:** `components/TodoFilters.js` - Add new filter section inside accordion
 - Combine with existing priority/tag filters
+- Use same ButtonGroup pattern as priority filter for consistency
 
 **Step 4.8: Write Frontend Tests**
 - Test date picker appears in form
@@ -520,10 +529,12 @@ app.get('/api/todos', (req, res) => {
 - Accessible implementation with proper ARIA attributes
 
 **Files Modified:**
-- Backend: [app.test.js](packages/backend/__tests__/app.test.js) - Added 7 tests with beforeEach cleanup
-- Backend: [app.js](packages/backend/src/app.js) - Added status filtering logic
-- Frontend: [App.test.js](packages/frontend/src/__tests__/App.test.js) - Added 6 tests
-- Frontend: [App.js](packages/frontend/src/App.js) - Added ToggleButtonGroup UI and state management
+- Backend: `__tests__/todos.filters.test.js` - Status filter tests (extracted from app.test.js)
+- Backend: `src/routes/todoRoutes.js` - Status filtering logic in GET handler
+- Frontend: `src/__tests__/App.test.js` - Status filter UI tests
+- Frontend: `src/components/TodoFilters.js` - ToggleButtonGroup for status filter
+- Frontend: `src/hooks/useTodos.js` - Status param in query key
+- Frontend: `src/App.js` - State management for statusFilter
 
 **Feature Highlights:**
 - Filter positioned prominently with "Show" label
@@ -560,34 +571,36 @@ app.get('/api/todos', (req, res) => {
 - Test search combines with other filters (status, priority)
 
 **Step 6.3: Implement Backend**
+
+**Files to modify:**
+- `src/routes/todoRoutes.js` - Add search query param handling in GET handler
+
 ```javascript
-app.get('/api/todos', (req, res) => {
-  let result = [...todos];
-  
-  // Search filter
-  if (req.query.search) {
-    const searchTerm = req.query.search.toLowerCase();
-    result = result.filter(todo => {
-      const titleMatch = todo.title.toLowerCase().includes(searchTerm);
-      const tagMatch = todo.tags.some(tag => 
-        tag.toLowerCase().includes(searchTerm)
-      );
-      return titleMatch || tagMatch;
-    });
-  }
-  
-  // Apply other filters...
-  res.json(result);
-});
+// In routes/todoRoutes.js GET handler
+if (req.query.search) {
+  const searchTerm = req.query.search.toLowerCase();
+  result = result.filter(todo => {
+    const titleMatch = todo.title.toLowerCase().includes(searchTerm);
+    const tagMatch = todo.tags.some(tag => 
+      tag.toLowerCase().includes(searchTerm)
+    );
+    return titleMatch || tagMatch;
+  });
+}
 ```
 
 #### Frontend Changes
 
 **Step 6.4: Add Search Input**
-- Add TextField with search icon above filters
+- **UI Integration Note:** Add TextField in FOCUS section, positioned ABOVE the status filter ToggleButtonGroup
+- **File to modify:** `components/TodoList.js` - Add search input above TodoFilters, or create new `components/SearchBar.js`
+- Update `hooks/useTodos.js` to accept search param in query key
+- Include InputAdornment with SearchIcon on left side
 - Debounce input (300ms) to avoid excessive API calls
-- Clear button to reset search
+- Clear button (IconButton with CloseIcon) in InputAdornment on right
 - Placeholder: "Search todos..."
+- Full width to match filter width
+- Size: "small" for consistency with other inputs
 
 **Step 6.5: Implement Search State**
 - Add useState for search term
@@ -639,49 +652,42 @@ app.get('/api/todos', (req, res) => {
 - Test combining sort with filters
 
 **Step 7.3: Implement Backend**
+
+**Files to modify:**
+- `src/routes/todoRoutes.js` - Add sort/order query param handling in GET handler
+- `src/validators.js` - Add `VALID_SORT_FIELDS` constant (optional)
+
 ```javascript
-app.get('/api/todos', (req, res) => {
-  let result = [...todos];
-  
-  // Apply filters...
-  
-  // Sort
-  const sortField = req.query.sort || 'order';
-  const sortOrder = req.query.order || 'asc';
-  const multiplier = sortOrder === 'desc' ? -1 : 1;
-  
-  result.sort((a, b) => {
-    if (sortField === 'priority') {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return (priorityOrder[a.priority] - priorityOrder[b.priority]) * multiplier;
-    }
-    if (sortField === 'title') {
-      return a.title.localeCompare(b.title) * multiplier;
-    }
-    if (sortField === 'dueDate') {
-      // Handle null dates (put at end)
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
-      return (new Date(a.dueDate) - new Date(b.dueDate)) * multiplier;
-    }
-    if (sortField === 'createdAt') {
-      return (new Date(a.createdAt) - new Date(b.createdAt)) * multiplier;
-    }
-    // Default: custom order
-    return (a.order - b.order) * multiplier;
-  });
-  
-  res.json(result);
+// In routes/todoRoutes.js GET handler
+const sortField = req.query.sort || 'order';
+const sortOrder = req.query.order || 'asc';
+const multiplier = sortOrder === 'desc' ? -1 : 1;
+
+result.sort((a, b) => {
+  if (sortField === 'priority') {
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    return (priorityOrder[a.priority] - priorityOrder[b.priority]) * multiplier;
+  }
+  if (sortField === 'title') {
+    return a.title.localeCompare(b.title) * multiplier;
+  }
+  // ... other fields
+  return (a.order - b.order) * multiplier;
 });
 ```
 
 #### Frontend Changes
 
 **Step 7.4: Add Sort Dropdown**
-- Add Select/Menu component for sort options
+- Add Select/Menu component for sort options in FOCUS section
 - Options: Custom Order, Priority, Due Date, Date Added, Alphabetical
-- Add order toggle button (ascending/descending icon)
-- Place near filter buttons
+- Add order toggle button (ascending/descending icon) as IconButton next to Select
+- **UI Integration Note:** Place BELOW search bar, ABOVE status filter ToggleButtonGroup
+- **File to modify:** `components/TodoFilters.js` - Add sort controls above ToggleButtonGroup, or create `components/SortControls.js`
+- Update `hooks/useTodos.js` to pass sort/order query params
+- Use FormControl with InputLabel "Sort by"
+- Size: "small", fullWidth: false (inline with toggle button)
+- Stack direction="row" with gap={1} to align Select + toggle button
 
 **Step 7.5: Implement Sort State**
 - Add useState for sortField and sortOrder
@@ -733,61 +739,50 @@ app.get('/api/todos', (req, res) => {
 - Test partial success scenarios (some IDs invalid)
 
 **Step 8.3: Implement Backend**
+
+**Files to modify:**
+- `src/routes/todoRoutes.js` - Add bulk action routes (`/bulk/complete`, `/bulk/delete`, etc.)
+- `src/todoStore.js` - Add `bulkUpdateTodos()`, `bulkDeleteTodos()` helpers
+- `src/validators.js` - Add `validateBulkIds()` for array validation
+
 ```javascript
-// Bulk complete
-app.patch('/api/todos/bulk/complete', (req, res) => {
-  const { ids } = req.body; // Array of todo IDs
-  
+// In routes/todoRoutes.js
+router.patch('/bulk/complete', (req, res) => {
+  const { ids } = req.body;
   if (!Array.isArray(ids)) {
     return res.status(400).json({ error: 'IDs must be an array' });
   }
-  
   const updated = [];
   ids.forEach(id => {
-    const todo = todos.find(t => t.id === id);
-    if (todo) {
-      todo.completed = true;
-      updated.push(todo);
-    }
+    const todo = findTodoById(id);
+    if (todo) { todo.completed = true; updated.push(todo); }
   });
-  
   res.json({ updated, count: updated.length });
 });
-
-// Bulk delete
-app.delete('/api/todos/bulk', (req, res) => {
-  const { ids } = req.body;
-  
-  const deleted = [];
-  ids.forEach(id => {
-    const index = todos.findIndex(t => t.id === id);
-    if (index !== -1) {
-      deleted.push(todos.splice(index, 1)[0]);
-    }
-  });
-  
-  res.json({ deleted, count: deleted.length });
-});
-
-// Similar for other bulk operations...
 ```
 
 #### Frontend Changes
 
 **Step 8.4: Add Selection State**
 - Add useState for selected todo IDs (Set or Array)
-- Add "Select All" checkbox in header
-- Add checkbox for each todo item
-- Show selection count: "3 selected"
+- Add "Select All" checkbox in FOCUS section header (next to "Tasks" subtitle)
+- Add checkbox for each todo item (positioned before existing checkbox, or replace with multi-select checkbox)
+- Show selection count: "3 selected" below section header
+- **UI Integration Note:** Use Checkbox with indeterminate state for "Select All" when partially selected
+- **Files to modify:** `components/TodoList.js` (selection state, select-all checkbox), `components/TodoItem.js` (per-item selection checkbox)
 
 **Step 8.5: Create Bulk Action Bar**
-- Fixed/floating action bar when items selected
-- Buttons: Complete, Delete, Change Priority, Add Tag
-- Cancel/Clear selection button
-- Confirmation dialog for destructive actions (delete)
+- **UI Integration Note:** Fixed Toolbar positioned at bottom of FOCUS card when items selected (position: sticky, bottom: 0)
+- Alternative: Portal to global position (fixed at bottom of viewport)
+- Background: theme.palette.primary.main with elevation={4}
+- Buttons: Complete, Delete, Change Priority, Add Tag (use IconButtons with tooltips for space efficiency)
+- Cancel/Clear selection button (CloseIcon on right edge)
+- Confirmation Dialog for destructive actions (delete)
+- Match existing Card borderRadius and shadow styling
 
 **Step 8.6: Implement Bulk Mutations**
-- Create React Query mutations for each bulk action
+- Create React Query mutations for each bulk action in `hooks/useTodoMutations.js`
+- Add bulk API endpoints to `api/todoApi.js` if centralizing URLs
 - Invalidate queries on success
 - Show success toast: "3 todos completed"
 - Clear selection after successful action
@@ -830,6 +825,11 @@ app.delete('/api/todos/bulk', (req, res) => {
 - PATCH /api/todos/:id/subtasks/:subtaskId/toggle - Toggle subtask
 - DELETE /api/todos/:id/subtasks/:subtaskId - Delete subtask
 
+**Files to modify:**
+- `src/todoStore.js` - Add `subtasks` array to todo model, add subtask accessor helpers
+- `src/routes/todoRoutes.js` - Add nested subtask routes (or create `src/routes/subtaskRoutes.js`)
+- `src/validators.js` - Add `validateSubtaskTitle()`
+
 **Step 9.3: Write Backend Tests**
 - Test adding subtask to todo
 - Test updating subtask title
@@ -841,42 +841,18 @@ app.delete('/api/todos/bulk', (req, res) => {
 
 **Step 9.4: Implement Backend**
 ```javascript
-// Add to todo model
+// In todoStore.js - add subtasks to todo model
 const newTodo = {
   // ...existing fields
-  subtasks: [], // Add this
+  subtasks: [],
 };
 
-// POST /api/todos/:id/subtasks
-app.post('/api/todos/:id/subtasks', (req, res) => {
-  const todoId = parseInt(req.params.id);
-  const { title } = req.body;
-  const todo = todos.find(t => t.id === todoId);
-  
-  if (!todo) {
-    return res.status(404).json({ error: 'Todo not found' });
-  }
-  
-  if (!title || title.trim() === '') {
-    return res.status(400).json({ error: 'Subtask title required' });
-  }
-  
-  // Generate subtask ID (unique within todo)
-  const subtaskId = todo.subtasks.length > 0 
-    ? Math.max(...todo.subtasks.map(s => s.id)) + 1 
-    : 1;
-  
-  const newSubtask = {
-    id: subtaskId,
-    title: title.trim(),
-    completed: false,
-  };
-  
-  todo.subtasks.push(newSubtask);
-  res.status(201).json(todo);
+// In routes/todoRoutes.js (or new routes/subtaskRoutes.js)
+router.post('/:id/subtasks', (req, res) => {
+  const todo = findTodoById(parseInt(req.params.id));
+  if (!todo) return res.status(404).json({ error: 'Todo not found' });
+  // ... create subtask
 });
-
-// Similar for other subtask endpoints...
 ```
 
 **Step 9.5: Add Progress Calculation**
@@ -887,11 +863,14 @@ app.post('/api/todos/:id/subtasks', (req, res) => {
 #### Frontend Changes
 
 **Step 9.6: Create Subtask UI Component**
-- Expandable section below todo title
-- Collapse/expand icon (ChevronDown/ChevronRight)
-- List of subtasks with checkboxes
-- "Add subtask" button when expanded
-- Indent subtasks visually
+- Create new `components/SubtaskList.js` component
+- Expandable section below todo title in card list item
+- Use Collapse component from MUI for smooth expand/collapse animation
+- Collapse/expand IconButton (ExpandMore icon with rotation transition)
+- List of subtasks with checkboxes (smaller size than parent checkbox)
+- "Add subtask" button when expanded (Button with AddIcon, size="small", variant="text")
+- Indent subtasks visually (ml: 4 for left margin)
+- **UI Integration Note:** Integrate within `components/TodoItem.js` card structure. Place between title Typography and metadata Stack. Subtasks get their own nested Stack with smaller fontSize.
 
 **Step 9.7: Add Subtask Input**
 - Inline input field for new subtask
@@ -906,6 +885,7 @@ app.post('/api/todos/:id/subtasks', (req, res) => {
 - Color coding: red (0%), yellow (1-99%), green (100%)
 
 **Step 9.9: Implement Subtask Mutations**
+- Add subtask mutations in `hooks/useTodoMutations.js` (or new `hooks/useSubtaskMutations.js`)
 - addSubtaskMutation
 - updateSubtaskMutation
 - toggleSubtaskMutation
@@ -958,13 +938,16 @@ app.post('/api/todos/:id/subtasks', (req, res) => {
 - Test description persists after other operations
 
 **Step 10.3: Implement Backend**
-```javascript
-const newTodo = {
-  // ...existing fields
-  description: req.body.description || '', // Add this
-};
 
-// In PUT endpoint
+**Files to modify:**
+- `src/todoStore.js` - Add `description` field (default: `''`) in `addTodo()`
+- `src/routes/todoRoutes.js` - Handle `description` in POST and PUT handlers
+
+```javascript
+// In todoStore.js addTodo()
+description: description || '',
+
+// In routes/todoRoutes.js PUT handler
 if (req.body.description !== undefined) {
   todo.description = req.body.description;
 }
@@ -977,12 +960,14 @@ if (req.body.description !== undefined) {
 - Rows: 3-4 initial, expandable
 - Placeholder: "Add notes or details..."
 - Character counter (optional, if limit set)
+- **Files to modify:** `components/AddTodoForm.js` (add multiline field), `components/TodoItem.js` (add in edit mode)
 
 **Step 10.5: Display Description in List**
-- Collapsed by default (show first 100 chars)
-- "Show more" / "Show less" toggle
-- Expand icon or click to expand
-- Rendered with proper line breaks
+- Collapsed by default (show first 100 chars with ellipsis)
+- "Show more" / "Show less" toggle Button (size="small", variant="text")
+- Positioned below metadata row in card list item
+- Rendered with proper line breaks (whiteSpace: 'pre-wrap')
+- **UI Integration Note:** Add as Collapse component within `components/TodoItem.js` Box structure. Place after metadata Stack, before list item bottom padding. Use Typography variant="body2" with color="text.secondary" for distinction from title.
 
 **Step 10.6: Description Modal/Drawer (Alternative)**
 - Click notes icon to open side drawer
@@ -1030,41 +1015,26 @@ if (req.body.description !== undefined) {
 - Soft delete pattern: add `deleted` flag instead of removing
 
 **Step 11.2: Implement Soft Delete (Recommended)**
+
+**Files to modify:**
+- `src/todoStore.js` - Change `removeTodoByIndex()` to set `deleted: true` flag, add `restoreTodo()` helper
+- `src/routes/todoRoutes.js` - Update DELETE handler for soft delete, add PATCH `/:id/restore` route, filter deleted from GET
+
 ```javascript
-// Instead of splicing from array:
-app.delete('/api/todos/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const todo = todos.find(t => t.id === id);
-  
-  if (!todo) {
-    return res.status(404).json({ error: 'Todo not found' });
-  }
-  
-  // Soft delete
-  todo.deleted = true;
-  todo.deletedAt = new Date().toISOString();
-  
-  res.json(todo);
-});
+// In routes/todoRoutes.js DELETE handler - soft delete
+todo.deleted = true;
+todo.deletedAt = new Date().toISOString();
+res.json(todo);
 
-// Filter deleted from GET endpoint
-app.get('/api/todos', (req, res) => {
-  let result = todos.filter(t => !t.deleted);
-  // Apply other filters...
-});
+// In routes/todoRoutes.js GET handler - filter deleted
+let result = getTodos().filter(t => !t.deleted);
 
-// Restore endpoint
-app.patch('/api/todos/:id/restore', (req, res) => {
-  const id = parseInt(req.params.id);
-  const todo = todos.find(t => t.id === id);
-  
-  if (!todo) {
-    return res.status(404).json({ error: 'Todo not found' });
-  }
-  
+// New restore route
+router.patch('/:id/restore', (req, res) => {
+  const todo = findTodoById(parseInt(req.params.id));
+  if (!todo) return res.status(404).json({ error: 'Todo not found' });
   todo.deleted = false;
   delete todo.deletedAt;
-  
   res.json(todo);
 });
 ```
@@ -1440,18 +1410,87 @@ Each feature includes:
 - **Time Invested:** 2 hours 44 minutes
 - **Scope:** Data models, API endpoints, business logic, state management
 
-**2. UI/UX Improvements ([see UI Improvement Plan](ui-improvement-plan.md))**
+**2. UI/UX Improvements ([see UI Improvement Plan](ui-improvement-plan.md))** ✅
 - **Total Estimated Time:** 10-15 hours
-- **Completed:** 0 of 5 phases (0%)
-- **Scope:** Layout redesign, visual components, responsive design, accessibility
+- **Completed:** 5 of 5 phases (100%) ✅
+- **Actual Time:** ~3-4 hours
+- **Scope:** Two-column layout, visual components, typography, accessibility, performance
+- **Key Achievements:**
+  - Modern two-column CAPTURE/FOCUS layout (lg container, 1280px)
+  - Purple theme with comprehensive design system
+  - Card-style task items with hover effects and metadata rows
+  - Semantic HTML, ARIA labels, keyboard navigation
+  - Performance optimizations (useMemo, useCallback)
+  - Collapsible filter accordion in FOCUS section
 
-**Combined Project Total:** 70-92 hours estimated
+**Combined Project Status:**
+- **Functional Features:** 4/12 complete (33%)
+- **UI Improvements:** 5/5 complete (100%) ✅
+- **Overall:** Solid visual foundation established, ready for feature expansion
 
 **Note:** This plan uses in-memory storage. Data will reset on server restart. For production use with data persistence, you would need to add database integration and user authentication separately.
 
+**UI Integration Note (Updated March 25, 2026):** All pending features now include specific UI integration guidance marked with "**UI Integration Note:**" to ensure seamless integration with the completed two-column layout, purple theme, and card-based design system. Refer to the [UI Improvement Plan](ui-improvement-plan.md) for the complete design system specifications.
+
+**Code Structure Note (Updated March 25, 2026):** The codebase has been refactored from monolithic files into a modular structure. Pending features include "**Files to modify:**" annotations pointing to the correct modules:
+- **Backend:** `src/validators.js` (validation), `src/todoStore.js` (data model), `src/routes/todoRoutes.js` (route handlers)
+- **Frontend:** `src/components/` (UI components), `src/hooks/` (React Query hooks), `src/utils/helpers.js` (utilities), `src/api/todoApi.js` (API config)
+- **Tests:** Backend tests split by feature (`todos.crud.test.js`, `todos.priority.test.js`, `todos.tags.test.js`, `todos.filters.test.js`); new feature tests should follow this pattern
+
 ---
 
-## 📊 Overall Progress (As of March 25, 2026)
+## � Code Refactoring: File Split (March 25, 2026)
+
+### Motivation
+Both backend and frontend had grown into large monolithic files that were difficult to navigate and maintain. The codebase was split into focused, single-responsibility modules to improve maintainability ahead of future feature development.
+
+### Backend Refactoring
+
+**Before:** Single `app.js` (205 lines) containing routes, validation, and data store.
+
+**After:**
+| File | Lines | Responsibility |
+|---|---|---|
+| `src/app.js` | 22 | Express app setup, middleware, route mounting |
+| `src/validators.js` | 54 | Priority/tag validation helpers |
+| `src/todoStore.js` | 42 | In-memory data store with CRUD accessors |
+| `src/routes/todoRoutes.js` | 139 | All `/api/todos` route handlers |
+
+**Backend Test Splitting:**
+| File | Lines | Scope |
+|---|---|---|
+| `__tests__/app.test.js` | 220 | Core CRUD + integration tests (15 tests) |
+| `__tests__/todos.crud.test.js` | 197 | CRUD operations (15 tests) |
+| `__tests__/todos.priority.test.js` | 275 | Priority feature (21 tests) |
+| `__tests__/todos.tags.test.js` | 265 | Tags/categories feature (19 tests) |
+| `__tests__/todos.filters.test.js` | 159 | Status filter feature (7 tests) |
+
+**Test results:** 79 tests passing across 5 suites.
+
+### Frontend Refactoring
+
+**Before:** Single `App.js` (863 lines) containing all components, hooks, API calls, and utilities.
+
+**After:**
+| File | Lines | Responsibility |
+|---|---|---|
+| `src/App.js` | 191 | Top-level orchestrator with state management |
+| `src/api/todoApi.js` | 2 | API base URL constant |
+| `src/hooks/useTodos.js` | 38 | `useTodos` and `useAllTodos` React Query hooks |
+| `src/hooks/useTodoMutations.js` | 67 | Add, toggle, delete, edit mutation hooks |
+| `src/utils/helpers.js` | 12 | `getPriorityColor` utility |
+| `src/components/Header.js` | 53 | App header with gradient + theme toggle |
+| `src/components/SummaryDashboard.js` | 60 | Total/remaining task stat cards |
+| `src/components/AddTodoForm.js` | 140 | CAPTURE section: input form |
+| `src/components/TodoFilters.js` | 132 | Status, priority, and tag filters |
+| `src/components/TodoItem.js` | 242 | Individual task item (view + edit modes) |
+| `src/components/TodoList.js` | 155 | FOCUS section: list with filters + empty states |
+
+**Test results:** 49 tests passing. Also fixed 9 pre-existing test mismatches (aria-label patterns, stats text, `isPending` vs `isLoading` for React Query v5).
+
+---
+
+## �📊 Overall Progress (As of March 25, 2026)
 
 ### ✅ Completed Functional Features: 4 of 12 (33%)
 
@@ -1471,26 +1510,16 @@ Each feature includes:
 - **Efficiency:** ~6x faster than estimated
 
 ### Current Test Coverage
-- **Backend:** 64 tests passing
-- **Frontend:** 31 tests passing
-- **Total:** 95 tests passing (100% pass rate)
+- **Backend:** 79 tests passing (5 test suites)
+- **Frontend:** 49 tests passing
+- **Total:** 128 tests passing (100% pass rate)
 
 ### Next Recommended Work
 
-**Option A: Continue Functional Features**
-Following the implementation sequence recommendation:
-- Phase 2: Due Dates (5-6h est.)
-- Phase 2: Sort Options (3-4h est.)
-- Phase 2: Search/Filter Bar (3-4h est.)
+**Continue with Functional Features** ⭐ **RECOMMENDED**
+Following the implementation sequence recommendation, with UI foundation now complete:
+- Phase 2: Due Dates (5-6h est.) - Adds time management capability
+- Phase 2: Sort Options (3-4h est.) - Complements existing filters
+- Phase 2: Search/Filter Bar (3-4h est.) - Essential for larger task lists
 
-**Option B: Implement UI/UX Improvements** ⭐ **RECOMMENDED**
-Modernize the visual design before adding more features:
-- See **[UI Improvement Plan](ui-improvement-plan.md)** for detailed steps
-- Phase 1: Layout & Structure Redesign (2-3h)
-- Phase 2: Enhanced Task Input Section (2-3h)
-- Phase 3: Enhanced Task List Section (3-4h)
-- Phase 4: Typography & Spacing Refinement (1-2h)
-- Phase 5: Responsive Design & Polish (2-3h)
-- **Benefits:** Better foundation for future features, improved user experience, modern aesthetic
-
-**Recommendation:** Implement UI improvements first (Option B) to establish a solid visual foundation, then continue with functional features. This approach ensures new features integrate seamlessly into a polished interface.
+**Rationale:** With the UI/UX improvements complete (all 5 phases ✅), we now have a solid visual foundation. New functional features will integrate seamlessly into the established two-column layout, card-style components, and purple theme. The UI integration notes added above provide clear guidance for proper placement.
