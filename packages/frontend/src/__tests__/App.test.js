@@ -1593,7 +1593,7 @@ describe('Two-Column Layout', () => {
     await screen.findByText(/To Do App/i);
 
     // Check for CAPTURE section header
-    expect(screen.getByText(/^CAPTURE$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Add New Task$/i)).toBeInTheDocument();
   });
 
   test('renders FOCUS section with header', async () => {
@@ -1608,7 +1608,7 @@ describe('Two-Column Layout', () => {
     await screen.findByText(/To Do App/i);
 
     // Check for FOCUS section header
-    expect(screen.getByText(/^FOCUS$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Tasks$/i)).toBeInTheDocument();
   });
 
   test('renders Add New Task label in CAPTURE section', async () => {

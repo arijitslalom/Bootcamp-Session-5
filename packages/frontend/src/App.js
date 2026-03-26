@@ -69,10 +69,10 @@ function App() {
     deleteTodoMutation.mutate(id);
   };
 
-  // Calculate stats from todos - memoized for performance
+  // Calculate stats from ALL todos (unfiltered) - memoized for performance
   const incompleteTodos = useMemo(
-    () => todos.filter((todo) => !todo.completed).length,
-    [todos]
+    () => allTodosData.filter((todo) => !todo.completed).length,
+    [allTodosData]
   );
 
   const handleStartEdit = (todo) => {
@@ -131,15 +131,14 @@ function App() {
       <Container maxWidth="lg">
         <Header />
 
-        <SummaryDashboard
-          totalTasks={allTodosData.length}
-          remainingTasks={incompleteTodos}
-        />
-
-        {/* Two-Column Layout: CAPTURE (left) and FOCUS (right) */}
+        {/* Two-Column Layout */}
         <Grid container spacing={3}>
-          {/* LEFT COLUMN: CAPTURE - Input Section */}
+          {/* LEFT COLUMN: Stats + Input Section */}
           <Grid item xs={12} lg={5} component="section" aria-label="Add new task">
+            <SummaryDashboard
+              totalTasks={allTodosData.length}
+              remainingTasks={incompleteTodos}
+            />
             <AddTodoForm
               newTodoTitle={newTodoTitle}
               setNewTodoTitle={setNewTodoTitle}
@@ -155,7 +154,7 @@ function App() {
             />
           </Grid>
           
-          {/* RIGHT COLUMN: FOCUS - Task List Section */}
+          {/* RIGHT COLUMN: Task List Section */}
           <Grid item xs={12} lg={7} component="section" aria-label="Task list">
             <TodoList
               todos={todos}

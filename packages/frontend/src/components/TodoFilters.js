@@ -40,9 +40,36 @@ function TodoFilters({
 }) {
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Sort Controls */}
+      {/* Status Filter + Sort Controls - Single Row */}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
+        <ToggleButtonGroup 
+          value={statusFilter}
+          exclusive
+          onChange={(e, newValue) => {
+            if (newValue !== null) {
+              setStatusFilter(newValue);
+            }
+          }}
+          size="small"
+          aria-label="status filter"
+          sx={{ 
+            '& .MuiToggleButton-root': { width: '125px' },
+          }}
+        >
+          <ToggleButton value="all" aria-pressed={statusFilter === 'all'}>
+            All
+          </ToggleButton>
+          <ToggleButton value="active" aria-pressed={statusFilter === 'active'}>
+            Active
+          </ToggleButton>
+          <ToggleButton value="completed" aria-pressed={statusFilter === 'completed'}>
+            Completed
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Box sx={{ flexGrow: 1, minWidth: '50px' }} />
+
+        <FormControl size="small" sx={{ minWidth: 130 }}>
           <InputLabel id="sort-by-label">Sort by</InputLabel>
           <Select
             labelId="sort-by-label"
@@ -66,31 +93,6 @@ function TodoFilters({
           </IconButton>
         </Tooltip>
       </Stack>
-
-      {/* Status Filter - Prominent */}
-      <ToggleButtonGroup 
-        value={statusFilter}
-        exclusive
-        onChange={(e, newValue) => {
-          if (newValue !== null) {
-            setStatusFilter(newValue);
-          }
-        }}
-        fullWidth
-        size="small"
-        sx={{ mb: 2 }}
-        aria-label="status filter"
-      >
-        <ToggleButton value="all" aria-pressed={statusFilter === 'all'}>
-          All
-        </ToggleButton>
-        <ToggleButton value="active" aria-pressed={statusFilter === 'active'}>
-          Active
-        </ToggleButton>
-        <ToggleButton value="completed" aria-pressed={statusFilter === 'completed'}>
-          Completed
-        </ToggleButton>
-      </ToggleButtonGroup>
       
       {/* Collapsible Advanced Filters */}
       <Accordion sx={{ borderRadius: 2 }}>

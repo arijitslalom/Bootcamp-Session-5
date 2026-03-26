@@ -10,13 +10,17 @@ This document provides a detailed implementation plan for new TODO app **functio
 - **This document:** Focuses on functional features (data model changes, API endpoints, business logic)
 - **UI Improvement Plan:** Focuses on presentation layer (layout, typography, spacing, visual design, accessibility) ✅ **COMPLETE**
 
-**UI Context (As of March 25, 2026):**
+**UI Context (As of March 26, 2026):**
 The app now features a modern two-column layout:
-- **CAPTURE (Left, 42%):** Task input form with priority selector, tags input, and action button
-- **FOCUS (Right, 58%):** Task list with filters, card-style items with hover effects, metadata rows
+- **Left Column (42%, lg=5):** Summary dashboard (two compact stat tiles side-by-side) + task input form with priority selector, tags input, due date, and action button
+- **Right Column (58%, lg=7):** Task list with filters, card-style items with hover effects, metadata rows
+- **Task List:** Fixed-height scrollable container (60vh) to prevent layout shift when filtering
+- **Filter Bar:** Status filter (All/Active/Completed) and sort controls (Sort by dropdown + order toggle) on a single row
+- **Advanced Filters:** Priority and tag filters inside collapsible "More Filters" accordion
+- **Section Headers:** Left = "Add New Task", Right = "Tasks"
 - **Container Width:** `lg` (1280px max width for desktop optimization)
 - **Design System:** Purple theme (#667eea primary, #9c27b0 secondary), comprehensive typography, semantic HTML
-- **Components:** Card-style list items (borderRadius: 2, elevation changes on hover), collapsible "More Filters" accordion
+- **Components:** Card-style list items (borderRadius: 2, elevation changes on hover)
 - **Accessibility:** ARIA labels, keyboard navigation (Enter/Escape), semantic sections
 
 Pending features should integrate with this established UI pattern.
@@ -256,79 +260,14 @@ app.get('/api/todos', (req, res) => {
 
 ---
 
-### 3. Drag-and-Drop Reordering
+### 3. ~~Drag-and-Drop Reordering~~ ❌ DROPPED
 
-**Goal:** Allow users to manually reorder todos by dragging to prioritize tasks.
+**Status:** ❌ Dropped on March 26, 2026  
+**Reason:** Conflicts with the Sort Options feature (completed). When sorting by title, priority, or due date, manual drag reordering creates a UX contradiction. The Sort feature already provides flexible ordering control. Additionally, drag-and-drop within a scrollable container (60vh) adds significant complexity for limited benefit.
 
-#### Backend Changes
+**Original Goal:** Allow users to manually reorder todos by dragging to prioritize tasks.
 
-**Step 3.1: Add Order Field**
-- Add `order` field to todo object (numeric, default: current timestamp or incremental)
-- Update POST to set order (use Date.now() or nextId)
-- Add PATCH /api/todos/reorder endpoint to update multiple todo orders
-
-**Step 3.2: Write Backend Tests**
-- Test todos are returned sorted by order field
-- Test reorder endpoint accepts array of {id, order} objects
-- Test reorder updates persist correctly
-- Test invalid reorder requests are rejected
-
-**Step 3.3: Implement Backend**
-
-**Files to modify:**
-- `src/todoStore.js` - Add `order` field to `addTodo()`, add `updateTodoOrder()` helper
-- `src/routes/todoRoutes.js` - Add sort-by-order logic in GET handler, add PATCH `/reorder` route
-- `src/validators.js` - Add `validateReorderPayload()` if needed
-
-```javascript
-// In routes/todoRoutes.js - GET handler: sort by order
-result.sort((a, b) => a.order - b.order);
-
-// New reorder route in routes/todoRoutes.js
-router.patch('/reorder', (req, res) => {
-  const { updates } = req.body; // [{ id: 1, order: 100 }, ...]
-  updates.forEach(update => {
-    const todo = findTodoById(update.id);
-    if (todo) todo.order = update.order;
-  });
-  res.json({ success: true });
-});
-```
-
-#### Frontend Changes
-
-**Step 3.4: Install and Configure DnD Library**
-- Install `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
-- These are modern, accessible drag-and-drop libraries for React
-
-**Step 3.5: Implement Drag-and-Drop UI**
-- Wrap todo list with DndContext
-- Make each ListItem draggable with SortableContext
-- Add drag handle icon (DragIndicator from MUI icons)
-- Show visual feedback during drag (opacity, elevation)
-- **UI Integration Note:** Works with current card-style list items. Drag handle should appear on left side of card, before checkbox. Maintain hover effects and transitions during drag.
-- **Files to modify:** `components/TodoList.js` (add DndContext), `components/TodoItem.js` (add drag handle + sortable wrapper)
-
-**Step 3.6: Handle Reorder Logic**
-- Calculate new order values when item is dropped
-- Create mutation for reorder API call in `hooks/useTodoMutations.js`
-- Optimistically update UI, then sync with backend
-- Handle reorder failures gracefully
-
-**Step 3.7: Write Frontend Tests**
-- Test drag handle appears on each todo
-- Test reorder mutation is called with correct data
-- Test optimistic UI update
-- Test error handling if reorder fails
-
-**Step 3.8: UX Enhancements**
-- Disable drag when in edit mode
-- Add subtle animation for reordering
-- Show "drop zone" indicators
-- Mobile touch support
-
-**Dependencies:** Priority Levels, Categories/Tags (to avoid data model conflicts)
-**Estimated Effort:** 5-6 hours
+**Original Estimated Effort:** 5-6 hours
 
 ---
 
@@ -426,7 +365,7 @@ if (dueDate && !isValidDate(dueDate)) {
 - Count of overdue items
 - Count of items due today
 
-**Dependencies:** Priority Levels, Categories/Tags, Drag-and-Drop (data model)
+**Dependencies:** Priority Levels, Categories/Tags (data model)
 **Estimated Effort:** 5-6 hours  
 **Actual Effort:** 25 minutes
 
@@ -640,7 +579,7 @@ if (req.query.search) {
 #### Frontend Changes
 
 **Step 6.4: Add Search Input**
-- **UI Integration Note:** Add TextField in FOCUS section, positioned ABOVE the status filter ToggleButtonGroup
+- **UI Integration Note:** Add TextField in Tasks section, positioned ABOVE the status filter + sort row
 - **File to modify:** `components/TodoList.js` - Add search input above TodoFilters, or create new `components/SearchBar.js`
 - Update `hooks/useTodos.js` to accept search param in query key
 - Include InputAdornment with SearchIcon on left side
@@ -690,7 +629,7 @@ if (req.query.search) {
 **Step 7.1: Add Sort Query Parameter**
 - Add `?sort=<field>&order=<asc|desc>` query parameters
 - Supported fields: createdAt, title, priority, dueDate, order (custom)
-- Default: order ascending (custom drag-drop order)
+- Default: createdAt ascending
 
 **Step 7.2: Write Backend Tests**
 - Test sort by createdAt (newest/oldest first)
@@ -698,7 +637,7 @@ if (req.query.search) {
 - Test sort by priority (high→low, low→high)
 - Test sort by dueDate (soonest first, latest first)
 - Test sort by custom order
-- Test invalid sort field defaults to order
+- Test invalid sort field defaults to createdAt
 - Test combining sort with filters
 
 **Step 7.3: Implement Backend**
@@ -730,7 +669,7 @@ result.sort((a, b) => {
 
 **Step 7.4: Add Sort Dropdown**
 - Add Select/Menu component for sort options in FOCUS section
-- Options: Custom Order, Priority, Due Date, Date Added, Alphabetical
+- Options: Priority, Due Date, Date Added, Alphabetical
 - Add order toggle button (ascending/descending icon) as IconButton next to Select
 - **UI Integration Note:** Place BELOW search bar, ABOVE status filter ToggleButtonGroup
 - **File to modify:** `components/TodoFilters.js` - Add sort controls above ToggleButtonGroup, or create `components/SortControls.js`
@@ -748,7 +687,6 @@ result.sort((a, b) => {
 **Step 7.6: Visual Indicators**
 - Show current sort in dropdown label
 - Arrow icon for sort direction (↑↓)
-- Disable "Custom Order" if using other sort (conflicts with drag-drop)
 
 **Step 7.7: Write Frontend Tests**
 - Test sort dropdown renders all options
@@ -757,12 +695,7 @@ result.sort((a, b) => {
 - Test todos display in correct order
 - Test persistence to localStorage (if implemented)
 
-**Step 7.8: Sort + Drag-Drop Integration**
-- Disable drag-drop when not using "Custom Order" sort
-- Show message: "Drag-drop only available in Custom Order mode"
-- Auto-switch to Custom Order when dragging
-
-**Dependencies:** Priority Levels, Due Dates, Drag-and-Drop
+**Dependencies:** Priority Levels, Due Dates
 **Estimated Effort:** 3-4 hours  
 **Actual Effort:** 15 minutes
 
@@ -802,7 +735,7 @@ result.sort((a, b) => {
 **Notes:**
 - Followed strict TDD methodology (tests first, then implementation)
 - Implementation completed efficiently in 15 minutes (vs. 3-4 hour estimate)
-- Steps 7.6 (Visual Indicators beyond arrows), 7.8 (Sort + Drag-Drop Integration) deferred
+- Steps 7.6 (Visual Indicators beyond arrows) deferred. Step 7.8 (Sort + Drag-Drop Integration) dropped — Drag-and-Drop feature removed.
 - Sort options: Date Added, Title, Priority, Due Date
 - All existing tests continue to pass (no regressions)
 
@@ -856,14 +789,14 @@ router.patch('/bulk/complete', (req, res) => {
 
 **Step 8.4: Add Selection State**
 - Add useState for selected todo IDs (Set or Array)
-- Add "Select All" checkbox in FOCUS section header (next to "Tasks" subtitle)
+- Add "Select All" checkbox in Tasks section header (next to "Tasks" heading)
 - Add checkbox for each todo item (positioned before existing checkbox, or replace with multi-select checkbox)
 - Show selection count: "3 selected" below section header
-- **UI Integration Note:** Use Checkbox with indeterminate state for "Select All" when partially selected
+- **UI Integration Note:** Use Checkbox with indeterminate state for "Select All" when partially selected. Note: task list is inside a fixed-height scrollable container (60vh).
 - **Files to modify:** `components/TodoList.js` (selection state, select-all checkbox), `components/TodoItem.js` (per-item selection checkbox)
 
 **Step 8.5: Create Bulk Action Bar**
-- **UI Integration Note:** Fixed Toolbar positioned at bottom of FOCUS card when items selected (position: sticky, bottom: 0)
+- **UI Integration Note:** Fixed Toolbar positioned at bottom of Tasks card when items selected (position: sticky, bottom: 0). Must be placed OUTSIDE the scrollable container but INSIDE the card, so it remains visible while scrolling.
 - Alternative: Portal to global position (fixed at bottom of viewport)
 - Background: theme.palette.primary.main with elevation={4}
 - Buttons: Complete, Delete, Change Priority, Add Tag (use IconButtons with tooltips for space efficiency)
@@ -892,7 +825,7 @@ router.patch('/bulk/complete', (req, res) => {
 - Disable incompatible actions (can't complete already completed items)
 - Show action previews before confirming
 
-**Dependencies:** All previous features (to enable bulk operations on all fields)
+**Dependencies:** Priority Levels, Categories/Tags (to enable bulk operations on priority and tags fields)
 **Estimated Effort:** 5-6 hours
 
 ---
@@ -961,7 +894,7 @@ router.post('/:id/subtasks', (req, res) => {
 - List of subtasks with checkboxes (smaller size than parent checkbox)
 - "Add subtask" button when expanded (Button with AddIcon, size="small", variant="text")
 - Indent subtasks visually (ml: 4 for left margin)
-- **UI Integration Note:** Integrate within `components/TodoItem.js` card structure. Place between title Typography and metadata Stack. Subtasks get their own nested Stack with smaller fontSize.
+- **UI Integration Note:** Integrate within `components/TodoItem.js` card structure. Place between title Typography and metadata Stack. Subtasks get their own nested Stack with smaller fontSize. Note: expanding subtasks increases item height within the scrollable container (60vh) — collapse subtasks by default and consider limiting visible count (e.g., "Show 3 more") to avoid one item dominating the viewport.
 
 **Step 9.7: Add Subtask Input**
 - Inline input field for new subtask
@@ -998,12 +931,11 @@ router.post('/:id/subtasks', (req, res) => {
 - Test parent completion logic
 
 **Step 9.12 UX Enhancements**
-- Drag-drop reorder subtasks
 - Convert subtask to top-level todo
 - Copy all subtasks from another todo
 - Subtask templates ("Daily routine" has default subtasks)
 
-**Dependencies:** All organization features (subtasks should support priority, tags, due dates)
+**Dependencies:** Priority Levels, Categories/Tags, Due Dates (subtasks should support these fields)
 **Estimated Effort:** 7-8 hours
 
 ---
@@ -1421,13 +1353,12 @@ Based on dependencies and complexity, here's the recommended implementation orde
 ### Phase 3: Advanced UX (Week 3)
 8. Notes/Description Field (3-4h)
 9. Undo/Redo (4-5h)
-10. Drag-and-Drop Reordering (5-6h)
 
-**Total: ~12-15 hours**
+**Total: ~7-9 hours**
 
 ### Phase 4: Power Features (Week 4)
-11. Subtasks/Checklists (7-8h)
-12. Bulk Actions (5-6h)
+10. Subtasks/Checklists (7-8h)
+11. Bulk Actions (5-6h)
 
 **Total: ~12-14 hours**
 
@@ -1483,7 +1414,7 @@ For each feature:
 ## Summary
 
 This plan provides a comprehensive roadmap for implementing **functional features**:
-- **4 Priority & Organization Features**: Priority levels ✅, tags ✅, drag-drop, due dates ✅
+- **3 Priority & Organization Features**: Priority levels ✅, tags ✅, ~~drag-drop~~ ❌, due dates ✅
 - **4 Filtering & View Management Features**: Status filters ✅, search, sort ✅, bulk actions
 - **4 Enhanced User Experience Features**: Subtasks, notes, undo, dark mode ✅
 
@@ -1496,8 +1427,9 @@ Each feature includes:
 ### Project Components
 
 **1. Functional Features (This Document)**
-- **Total Estimated Time:** 60-77 hours
-- **Completed:** 5 of 12 features (42%)
+- **Total Estimated Time:** 54-71 hours (reduced from 60-77h after dropping Drag-and-Drop)
+- **Completed:** 5 of 11 features (45%)
+- **Dropped:** 1 feature (Drag-and-Drop — conflicts with Sort)
 - **Time Invested:** 2 hours 59 minutes
 - **Scope:** Data models, API endpoints, business logic, state management
 
@@ -1515,13 +1447,13 @@ Each feature includes:
   - Collapsible filter accordion in FOCUS section
 
 **Combined Project Status:**
-- **Functional Features:** 5/12 complete (42%)
+- **Functional Features:** 5/11 complete (45%), 1 dropped
 - **UI Improvements:** 5/5 complete (100%) ✅
-- **Overall:** Solid visual foundation established, Phase 1 complete, Phase 2 nearly complete (3/4 features)
+- **Overall:** Phase 1 complete, Phase 2 nearly complete (3/4), 6 features remaining
 
 **Note:** This plan uses in-memory storage. Data will reset on server restart. For production use with data persistence, you would need to add database integration and user authentication separately.
 
-**UI Integration Note (Updated March 25, 2026):** All pending features now include specific UI integration guidance marked with "**UI Integration Note:**" to ensure seamless integration with the completed two-column layout, purple theme, and card-based design system. Refer to the [UI Improvement Plan](ui-improvement-plan.md) for the complete design system specifications.
+**UI Integration Note (Updated March 26, 2026):** All pending features now include specific UI integration guidance marked with "**UI Integration Note:**" reflecting the current layout: summary dashboard in left column (compact tiles), section headers ("Add New Task" / "Tasks"), status filter + sort controls on one row, fixed-height scrollable task list (60vh), and collapsible advanced filters accordion. Refer to the [UI Improvement Plan](ui-improvement-plan.md) for the complete design system specifications.
 
 **Code Structure Note (Updated March 25, 2026):** The codebase has been refactored from monolithic files into a modular structure. Pending features include "**Files to modify:**" annotations pointing to the correct modules:
 - **Backend:** `src/validators.js` (validation), `src/todoStore.js` (data model), `src/routes/todoRoutes.js` (route handlers)
