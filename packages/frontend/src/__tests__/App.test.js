@@ -2410,6 +2410,198 @@ describe('Sort Feature', () => {
   });
 });
 
+describe('Search Feature', () => {
+  test('renders search input in the Tasks header', async () => {
+    const testQueryClient = createTestQueryClient();
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText(/To Do App/i);
+
+    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    expect(searchInput).toBeInTheDocument();
+  });
+
+  test('sends search query to API when typing', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const allTodos = [
+      { id: 1, title: 'Buy groceries', priority: 'medium', tags: [], completed: false },
+      { id: 2, title: 'Clean house', priority: 'low', tags: [], completed: false },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('search=buy')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([allTodos[0]]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(allTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Buy groceries');
+
+    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    await user.type(searchInput, 'buy');
+
+    // Verify search param is sent to API (with debounce)
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url => typeof url === 'string' && url.includes('search=buy'))).toBe(true);
+    }, { timeout: 3000 });
+  });
+
+  test('clears search when clear button is clicked', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const allTodos = [
+      { id: 1, title: 'Buy groceries', priority: 'medium', tags: [], completed: false },
+      { id: 2, title: 'Clean house', priority: 'low', tags: [], completed: false },
+    ];
+
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(allTodos),
+      })
+    );
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Buy groceries');
+
+    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    await user.type(searchInput, 'buy');
+
+    // Wait for clear button to appear
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /clear search/i })).toBeInTheDocument();
+    });
+
+    // Click clear button
+    const clearButton = screen.getByRole('button', { name: /clear search/i });
+    await user.click(clearButton);
+
+    // Search input should be cleared
+    expect(searchInput).toHaveValue('');
+  });
+
+  test('combines search with status filter', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const allTodos = [
+      { id: 1, title: 'Buy groceries', priority: 'medium', tags: [], completed: false },
+      { id: 2, title: 'Buy milk', priority: 'low', tags: [], completed: true },
+      { id: 3, title: 'Clean house', priority: 'low', tags: [], completed: false },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('search=buy') && url.includes('status=active')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([allTodos[0]]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(allTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Buy groceries');
+
+    // Set Active filter
+    const activeButton = screen.getByRole('button', { name: /^Active$/i });
+    await user.click(activeButton);
+
+    // Type search
+    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    await user.type(searchInput, 'buy');
+
+    // Verify both params sent
+    await waitFor(() => {
+      const fetchCalls = global.fetch.mock.calls.map(call => call[0]);
+      expect(fetchCalls.some(url =>
+        typeof url === 'string' && url.includes('search=buy') && url.includes('status=active')
+      )).toBe(true);
+    }, { timeout: 3000 });
+  });
+
+  test('shows empty state message when search has no results', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const allTodos = [
+      { id: 1, title: 'Buy groceries', priority: 'medium', tags: [], completed: false },
+    ];
+
+    global.fetch.mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('search=xyz')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(allTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Buy groceries');
+
+    const searchInput = screen.getByPlaceholderText(/search todos/i);
+    await user.type(searchInput, 'xyz');
+
+    // Wait for empty state (debounced search triggers re-fetch)
+    await waitFor(() => {
+      // Should show some "no results" message
+      const emptyState = screen.queryByText(/no tasks/i) || screen.queryByText(/no results/i);
+      expect(emptyState).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

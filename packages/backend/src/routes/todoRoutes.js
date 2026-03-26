@@ -34,6 +34,18 @@ router.get('/', (req, res) => {
     );
   }
 
+  // Search by title or tags if query param provided
+  if (req.query.search) {
+    const searchTerm = req.query.search.toLowerCase();
+    filteredTodos = filteredTodos.filter(todo => {
+      const titleMatch = todo.title.toLowerCase().includes(searchTerm);
+      const tagMatch = todo.tags && todo.tags.some(tag =>
+        tag.toLowerCase().includes(searchTerm)
+      );
+      return titleMatch || tagMatch;
+    });
+  }
+
   // Filter by dueBefore if query param provided
   if (req.query.dueBefore) {
     const beforeDate = new Date(req.query.dueBefore);

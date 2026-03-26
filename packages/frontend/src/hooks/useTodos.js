@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { API_URL } from '../api/todoApi';
 
 // React Query hook for fetching todos
-export const useTodos = (statusFilter, priorityFilter, tagFilter, sortField, sortOrder) => {
+export const useTodos = (statusFilter, priorityFilter, tagFilter, sortField, sortOrder, searchQuery) => {
   return useQuery({
-    queryKey: ['todos', statusFilter, priorityFilter, tagFilter, sortField, sortOrder],
+    queryKey: ['todos', statusFilter, priorityFilter, tagFilter, sortField, sortOrder, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
@@ -12,6 +12,7 @@ export const useTodos = (statusFilter, priorityFilter, tagFilter, sortField, sor
       if (tagFilter) params.append('tag', tagFilter);
       if (sortField && sortField !== 'createdAt') params.append('sort', sortField);
       if (sortOrder && sortOrder !== 'asc') params.append('order', sortOrder);
+      if (searchQuery) params.append('search', searchQuery);
       
       const url = params.toString() ? `${API_URL}?${params}` : API_URL;
       const response = await fetch(url);

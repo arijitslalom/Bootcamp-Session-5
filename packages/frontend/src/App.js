@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -29,10 +29,20 @@ function App() {
   const [tagFilter, setTagFilter] = useState(null);
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Fetch todos using React Query (filtered)
-  const { data: todos = [], isLoading, error } = useTodos(statusFilter, priorityFilter, tagFilter, sortField, sortOrder);
+  const { data: todos = [], isLoading, error } = useTodos(statusFilter, priorityFilter, tagFilter, sortField, sortOrder, debouncedSearch);
   
   // Fetch ALL todos (unfiltered) for deriving filter options
   const { data: allTodosData = [] } = useAllTodos();
@@ -160,6 +170,8 @@ function App() {
               todos={todos}
               isLoading={isLoading}
               error={error}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
               priorityFilter={priorityFilter}

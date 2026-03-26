@@ -8,11 +8,16 @@ import {
   List,
   CircularProgress,
   Alert,
+  TextField,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   ViewList as ViewListIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import TodoFilters from './TodoFilters';
 import TodoItem from './TodoItem';
@@ -21,6 +26,8 @@ function TodoList({
   todos,
   isLoading,
   error,
+  searchTerm,
+  setSearchTerm,
   statusFilter,
   setStatusFilter,
   priorityFilter,
@@ -50,12 +57,39 @@ function TodoList({
   return (
     <Card elevation={3} sx={{ borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
-        {/* Section Header */}
+        {/* Section Header with Search */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <CheckCircleIcon sx={{ mr: 1, color: 'success.main' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Tasks
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <TextField
+            size="small"
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ maxWidth: 220 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    aria-label="clear search"
+                    onClick={() => setSearchTerm('')}
+                    edge="end"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
         </Box>
         
         {/* Filter Section */}
