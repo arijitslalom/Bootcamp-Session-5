@@ -2851,6 +2851,253 @@ describe('Description/Notes Feature', () => {
   });
 });
 
+describe('Undo/Redo Feature', () => {
+  test('shows undo snackbar after deleting a todo', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Todo to delete', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url, options = {}) => {
+      if (options.method === 'DELETE') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: true }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Todo to delete');
+
+    // Click delete button
+    const deleteButton = screen.getByRole('button', { name: /delete task/i });
+    await user.click(deleteButton);
+
+    // Undo snackbar should appear
+    await waitFor(() => {
+      expect(screen.getByText(/todo deleted/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+  });
+
+  test('clicking undo restores the deleted todo', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Restorable Todo', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    let deleted = false;
+    global.fetch.mockImplementation((url, options = {}) => {
+      if (options.method === 'DELETE') {
+        deleted = true;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: true }),
+        });
+      }
+      if (options.method === 'PATCH' && url.includes('/restore')) {
+        deleted = false;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: false }),
+        });
+      }
+      // GET - return based on deleted state
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(deleted ? [] : mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Restorable Todo');
+
+    // Delete todo
+    const deleteButton = screen.getByRole('button', { name: /delete task/i });
+    await user.click(deleteButton);
+
+    // Click undo
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+    });
+    const undoButton = screen.getByRole('button', { name: /undo/i });
+    await user.click(undoButton);
+
+    // Verify restore API was called
+    await waitFor(() => {
+      const restoreCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'PATCH' && call[0].includes('/restore')
+      );
+      expect(restoreCalls.length).toBeGreaterThan(0);
+    });
+  });
+
+  test('shows undo snackbar after toggling a todo', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Toggle Todo', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url, options = {}) => {
+      if (options.method === 'PATCH' && url.includes('/toggle')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], completed: true }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Toggle Todo');
+
+    // Click the checkbox to toggle
+    const checkbox = screen.getByRole('checkbox');
+    await user.click(checkbox);
+
+    // Undo snackbar should appear
+    await waitFor(() => {
+      expect(screen.getByText(/todo (completed|marked incomplete)/i)).toBeInTheDocument();
+    });
+  });
+
+  test('undo snackbar auto-dismisses', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Auto dismiss', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    global.fetch.mockImplementation((url, options = {}) => {
+      if (options.method === 'DELETE') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: true }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Auto dismiss');
+
+    const deleteButton = screen.getByRole('button', { name: /delete task/i });
+    await user.click(deleteButton);
+
+    // Undo snackbar should appear
+    await waitFor(() => {
+      expect(screen.getByText(/todo deleted/i)).toBeInTheDocument();
+    });
+
+    // Advance time past auto-hide duration (6 seconds)
+    jest.advanceTimersByTime(7000);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/todo deleted/i)).not.toBeInTheDocument();
+    });
+
+    jest.useRealTimers();
+  });
+
+  test('Ctrl+Z triggers undo when action is available', async () => {
+    const user = userEvent.setup();
+    const testQueryClient = createTestQueryClient();
+
+    const mockTodos = [
+      { id: 1, title: 'Keyboard Undo', completed: false, priority: 'medium', tags: [] },
+    ];
+
+    let deleted = false;
+    global.fetch.mockImplementation((url, options = {}) => {
+      if (options.method === 'DELETE') {
+        deleted = true;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: true }),
+        });
+      }
+      if (options.method === 'PATCH' && url.includes('/restore')) {
+        deleted = false;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockTodos[0], deleted: false }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(deleted ? [] : mockTodos),
+      });
+    });
+
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+
+    await screen.findByText('Keyboard Undo');
+
+    // Delete the todo
+    const deleteButton = screen.getByRole('button', { name: /delete task/i });
+    await user.click(deleteButton);
+
+    // Wait for undo snackbar
+    await waitFor(() => {
+      expect(screen.getByText(/todo deleted/i)).toBeInTheDocument();
+    });
+
+    // Press Ctrl+Z
+    await user.keyboard('{Control>}z{/Control}');
+
+    // Verify restore API was called
+    await waitFor(() => {
+      const restoreCalls = global.fetch.mock.calls.filter(
+        call => call[1]?.method === 'PATCH' && call[0].includes('/restore')
+      );
+      expect(restoreCalls.length).toBeGreaterThan(0);
+    });
+  });
+});
+
 afterEach(() => {
   jest.clearAllMocks();
 });

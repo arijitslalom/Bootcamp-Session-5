@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Container,
   Box,
   Grid,
   Snackbar,
   Alert,
+  Button,
 } from '@mui/material';
 import { useTodos, useAllTodos } from './hooks/useTodos';
 import { useTodoMutations } from './hooks/useTodoMutations';
@@ -34,6 +35,9 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [undoAction, setUndoAction] = useState(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimerRef = useRef(null);
 
   // Debounce search input
   useEffect(() => {
@@ -50,7 +54,7 @@ function App() {
   const { data: allTodosData = [] } = useAllTodos();
 
   // Mutations
-  const { addTodoMutation, toggleTodoMutation, deleteTodoMutation, editTodoMutation } = useTodoMutations({
+  const { addTodoMutation, toggleTodoMutation, deleteTodoMutation, editTodoMutation, restoreTodoMutation } = useTodoMutations({
     onAddSuccess: () => {
       setNewTodoTitle('');
       setNewTodoPriority('medium');
@@ -59,6 +63,20 @@ function App() {
       setNewTodoDescription('');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
+    },
+    onDeleteSuccess: (deletedTodo) => {
+      setUndoAction({ type: 'delete', data: deletedTodo, message: 'Todo deleted' });
+      setShowUndo(true);
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setShowUndo(false), 6000);
+    },
+    onToggleSuccess: (id) => {
+      const todo = todos.find(t => t.id === id);
+      const wasCompleted = todo ? todo.completed : false;
+      setUndoAction({ type: 'toggle', data: { id }, message: wasCompleted ? 'Todo completed' : 'Todo marked incomplete' });
+      setShowUndo(true);
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setShowUndo(false), 6000);
     },
   });
 
@@ -82,6 +100,32 @@ function App() {
   const handleDeleteTodo = (id) => {
     deleteTodoMutation.mutate(id);
   };
+
+  const handleUndo = useCallback(() => {
+    if (!undoAction) return;
+    if (undoAction.type === 'delete') {
+      restoreTodoMutation.mutate(undoAction.data.id);
+    } else if (undoAction.type === 'toggle') {
+      toggleTodoMutation.mutate(undoAction.data.id);
+    }
+    setShowUndo(false);
+    setUndoAction(null);
+    clearTimeout(undoTimerRef.current);
+  }, [undoAction, restoreTodoMutation, toggleTodoMutation]);
+
+  // Ctrl+Z keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.target.closest('input, textarea, [contenteditable]')) {
+        e.preventDefault();
+        if (undoAction && showUndo) {
+          handleUndo();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [undoAction, showUndo, handleUndo]);
 
   // Calculate stats from ALL todos (unfiltered) - memoized for performance
   const incompleteTodos = useMemo(
@@ -224,6 +268,20 @@ function App() {
             Task added successfully!
           </Alert>
         </Snackbar>
+
+        {/* Undo Snackbar */}
+        <Snackbar
+          open={showUndo}
+          autoHideDuration={6000}
+          onClose={() => { setShowUndo(false); setUndoAction(null); }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          message={undoAction?.message}
+          action={
+            <Button color="inherit" size="small" onClick={handleUndo} aria-label="undo">
+              UNDO
+            </Button>
+          }
+        />
       </Container>
     </Box>
   );

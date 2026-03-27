@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_URL } from '../api/todoApi';
 
-export const useTodoMutations = ({ onAddSuccess }) => {
+export const useTodoMutations = ({ onAddSuccess, onDeleteSuccess, onToggleSuccess }) => {
   const queryClient = useQueryClient();
 
   const addTodoMutation = useMutation({
@@ -19,23 +19,36 @@ export const useTodoMutations = ({ onAddSuccess }) => {
     },
   });
 
-  const toggleTodoMutation = useMutation({
+  const deleteTodoMutation = useMutation({
     mutationFn: async (id) => {
-      await fetch(`${API_URL}/${id}/toggle`, {
-        method: 'PATCH',
-      });
+      const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      if (onDeleteSuccess) onDeleteSuccess(data);
+    },
+  });
+
+  const restoreTodoMutation = useMutation({
+    mutationFn: async (id) => {
+      const response = await fetch(`${API_URL}/${id}/restore`, { method: 'PATCH' });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
     },
   });
 
-  const deleteTodoMutation = useMutation({
+  const toggleTodoMutation = useMutation({
     mutationFn: async (id) => {
-      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      await fetch(`${API_URL}/${id}/toggle`, {
+        method: 'PATCH',
+      });
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
+      if (onToggleSuccess) onToggleSuccess(id);
     },
   });
 
@@ -65,5 +78,6 @@ export const useTodoMutations = ({ onAddSuccess }) => {
     toggleTodoMutation,
     deleteTodoMutation,
     editTodoMutation,
+    restoreTodoMutation,
   };
 };

@@ -7,7 +7,8 @@ const router = express.Router();
 // GET /api/todos - Get all todos
 // INTENTIONAL ISSUE: This endpoint has a bug - it doesn't handle the case when todos is null
 router.get('/', (req, res) => {
-  let filteredTodos = getTodos();
+  // Filter out soft-deleted todos
+  let filteredTodos = getTodos().filter(t => !t.deleted);
 
   // Filter by completion status if query param provided
   const status = req.query.status || 'all';
@@ -211,18 +212,33 @@ router.patch('/:id/toggle', (req, res) => {
   res.json(todo);
 });
 
-// DELETE /api/todos/:id - Delete a todo
+// DELETE /api/todos/:id - Soft delete a todo
 router.delete('/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const todoIndex = findTodoIndexById(id);
+  const todo = findTodoById(id);
 
-  if (todoIndex === -1) {
+  if (!todo) {
     return res.status(404).json({ error: 'Todo not found' });
   }
 
-  // Remove the todo
-  const deletedTodo = removeTodoByIndex(todoIndex);
-  res.json(deletedTodo);
+  // Soft delete: set deleted flag instead of removing
+  todo.deleted = true;
+  todo.deletedAt = new Date().toISOString();
+  res.json(todo);
+});
+
+// PATCH /api/todos/:id/restore - Restore a soft-deleted todo
+router.patch('/:id/restore', (req, res) => {
+  const id = parseInt(req.params.id);
+  const todo = findTodoById(id);
+
+  if (!todo) {
+    return res.status(404).json({ error: 'Todo not found' });
+  }
+
+  todo.deleted = false;
+  delete todo.deletedAt;
+  res.json(todo);
 });
 
 module.exports = router;
